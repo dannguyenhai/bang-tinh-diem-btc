@@ -24,6 +24,10 @@ export function redactForSession(
 
   const own = session?.role === "CARE_TEAM" ? session.teamId : null;
 
+  // Đấu giá diễn ra trên sân khấu, nên khi đã chốt xong thì Booster ai cầm
+  // là thông tin công khai — màn LED được phép hiện.
+  const auctionSettled = data.auction.phase === "DONE";
+
   for (const id of TEAM_IDS) {
     if (id === own) continue;
     const team = data.teams[id];
@@ -31,11 +35,11 @@ export function redactForSession(
     // Energy nội bộ là dữ liệu chiến thuật — bỏ.
     team.currentEnergy = 0;
     team.redacted = true;
-    if (!own) {
+    if (!own && !auctionSettled) {
       team.boosterOwned = null;
       team.boosterUsed = false;
-      team.boosterActivatedAtChallenge = null;
     }
+    if (!own) team.boosterActivatedAtChallenge = null;
   }
 
   for (const challengeId of CHALLENGE_IDS) {

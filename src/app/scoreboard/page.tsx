@@ -1,6 +1,7 @@
 "use client";
 
 import { LoadingScreen, SyncPill } from "@/components/AppShell";
+import { BOOSTER_META } from "@/lib/config";
 import { getRanking } from "@/lib/selectors";
 import { useGameStore } from "@/lib/store";
 
@@ -92,14 +93,39 @@ export default function ScoreboardPage() {
                   <span className="block truncate text-xl font-black tracking-wide text-white sm:text-4xl lg:text-6xl">
                     {team.name}
                   </span>
-                  {leader && (
-                    <span
-                      className="mt-1 block text-[9px] font-bold tracking-[0.34em] uppercase sm:text-xs lg:text-sm"
-                      style={{ color: team.color }}
-                    >
-                      Đang dẫn đầu
-                    </span>
-                  )}
+                  <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    {leader && (
+                      <span
+                        className="text-[9px] font-bold tracking-[0.34em] uppercase sm:text-xs lg:text-sm"
+                        style={{ color: team.color }}
+                      >
+                        Đang dẫn đầu
+                      </span>
+                    )}
+                    {team.boosterOwned && (
+                      <span
+                        className="inline-flex items-center gap-1.5 border px-2 py-0.5 text-[9px] font-bold tracking-[0.22em] uppercase sm:gap-2 sm:px-3 sm:py-1 sm:text-sm lg:px-4 lg:py-1.5 lg:text-lg"
+                        style={{
+                          color: BOOSTER_META[team.boosterOwned].color,
+                          borderColor: `${BOOSTER_META[team.boosterOwned].color}66`,
+                          background: `${BOOSTER_META[team.boosterOwned].color}14`,
+                          opacity: team.boosterUsed ? 0.6 : 1,
+                        }}
+                      >
+                        <span
+                          className="h-1.5 w-1.5 rounded-full sm:h-2 sm:w-2 lg:h-2.5 lg:w-2.5"
+                          style={{
+                            background: BOOSTER_META[team.boosterOwned].color,
+                            boxShadow: team.boosterUsed
+                              ? undefined
+                              : `0 0 8px ${BOOSTER_META[team.boosterOwned].color}`,
+                          }}
+                        />
+                        {BOOSTER_META[team.boosterOwned].short}
+                        {team.boosterUsed && " · đã dùng"}
+                      </span>
+                    )}
+                  </span>
                 </span>
 
                 <span className="flex items-baseline gap-2 lg:gap-4">

@@ -296,7 +296,8 @@ eq("PIN không rời khỏi server (GM)", forGm.gmPinHash, "");
 const forPublic = redactForSession(g, null);
 eq("Khách chỉ thấy điểm đã công bố", forPublic.teams.TEAM_1.publishedEnergy, g.teams.TEAM_1.publishedEnergy);
 eq("Khách không thấy Energy nội bộ", forPublic.teams.TEAM_1.currentEnergy, 0);
-eq("Khách không thấy Booster", forPublic.teams.TEAM_1.boosterOwned, null);
+// Ở thời điểm này đấu giá đã chốt, nên Booster là thông tin sân khấu.
+eq("Khách thấy Booster sau khi đấu giá chốt", forPublic.teams.TEAM_1.boosterOwned !== null, true);
 eq("Khách không thấy diễn biến vòng", forPublic.challenges[4].entries.TEAM_1.investment, null);
 
 
@@ -611,6 +612,37 @@ r2.auction.phase = "RUNNING";
 M.prepareCurrentLot(r2);
 M.awardLotRandom(r2, gm, "ALPHA");
 eq("Có đội dẫn thì trao đúng đội đó, không random", r2.auction.lots.ALPHA.winner, "TEAM_1");
+
+
+
+/* --- Màn LED chỉ hiện Booster sau khi đấu giá chốt xong --- */
+const led = auctionReady([100, 100, 100, 100]);
+T.forEach((t, i) => {
+  const bids = { ALPHA: 0, BETA: 0, GAMMA: 0, DELTA: 0 };
+  bids[(["ALPHA", "BETA", "GAMMA", "DELTA"] as const)[i]] = 10;
+  M.submitSealedBids(led, gm, t, bids);
+});
+M.lockSealedAuction(led, gm);
+led.auction.order = ["ALPHA", "BETA", "GAMMA", "DELTA"];
+led.auction.currentLotIndex = 0;
+led.auction.phase = "RUNNING";
+M.prepareCurrentLot(led);
+
+const midAuction = redactForSession(led, null);
+eq("Đang đấu giá — LED chưa hiện Booster", midAuction.teams.TEAM_1.boosterOwned, null);
+
+for (const b of ["ALPHA", "BETA", "GAMMA", "DELTA"] as const) {
+  if (led.auction.lots[b].status === "PUBLIC") M.awardLot(led, gm, b);
+}
+eq("Đấu giá đã chốt", led.auction.phase, "DONE");
+
+const afterAuction = redactForSession(led, null);
+eq("Xong đấu giá — LED hiện Booster", afterAuction.teams.TEAM_1.boosterOwned, "ALPHA");
+eq("LED biết Booster còn hay đã dùng", afterAuction.teams.TEAM_1.boosterUsed, false);
+eq("Nhưng vẫn giấu Energy nội bộ", afterAuction.teams.TEAM_1.currentEnergy, 0);
+eq("Và giấu vòng đã kích hoạt", afterAuction.teams.TEAM_1.boosterActivatedAtChallenge, null);
+eq("LED vẫn không đọc được nhật ký", afterAuction.auditLog.length, 0);
+eq("LED vẫn không thấy giá kín", afterAuction.auction.teams.TEAM_2.bids.BETA, 0);
 
 console.log(`\n${pass} đạt / ${fail} lỗi`);
 process.exit(fail > 0 ? 1 : 0);
