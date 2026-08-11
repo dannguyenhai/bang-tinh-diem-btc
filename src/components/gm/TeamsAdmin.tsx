@@ -200,7 +200,7 @@ function TeamProfileRow({
 
   return (
     <div
-      className="enter rounded-xl border border-ink-700 bg-ink-800/40 p-3"
+      className="enter rounded-lg border border-ink-700 bg-linear-to-b from-ink-800/50 to-ink-950/50 p-3"
       style={
         {
           borderLeft: `3px solid ${team.color}`,

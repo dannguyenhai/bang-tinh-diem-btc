@@ -1,24 +1,31 @@
 @import "tailwindcss";
 
 @theme {
-  --color-ink-950: #05070f;
-  --color-ink-900: #0a0e1c;
-  --color-ink-800: #121829;
-  --color-ink-700: #1b2338;
-  --color-ink-600: #2a3450;
-  --color-ink-400: #6b7793;
-  --color-ink-200: #aebbd4;
+  /* Nền navy sâu như key visual của chương trình */
+  --color-ink-950: #01050e;
+  --color-ink-900: #050d1e;
+  --color-ink-800: #0a1729;
+  --color-ink-700: #14263f;
+  --color-ink-600: #1f3a5c;
+  --color-ink-400: #6a86ab;
+  --color-ink-200: #b3ccea;
 
+  /* Neon xanh — màu chủ đạo của sân khấu */
+  --color-neon: #38bdf8;
+  --color-neon-deep: #0284c7;
+  --color-neon-soft: #7dd3fc;
+
+  /* Vàng giữ riêng cho Energy, để con số luôn bật khỏi nền xanh */
   --color-brand: #f5c542;
   --color-brand-dim: #b4901f;
+
   --color-win: #34d399;
-  --color-lose: #f87171;
+  --color-lose: #fb7185;
   --color-info: #38bdf8;
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
-  /* Easing mặc định của trình duyệt quá yếu — dùng bộ này cho toàn app. */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
@@ -26,20 +33,55 @@
 html,
 body {
   background: var(--color-ink-950);
-  color: #e8edf7;
+  color: #e6f0ff;
   -webkit-tap-highlight-color: transparent;
 }
 
+/*
+ * Nền nhiều lớp, tất cả đều tĩnh: lưới sao, quầng sáng chân trời, vignette.
+ * Không cho nền chuyển động — số liệu nằm trên nó phải đọc được trong một giây.
+ */
 body {
+  position: relative;
   font-family: var(--font-sans), system-ui, sans-serif;
-  background-image:
-    radial-gradient(circle at 12% -10%, rgba(245, 197, 66, 0.14), transparent 45%),
-    radial-gradient(circle at 88% 0%, rgba(56, 189, 248, 0.12), transparent 42%);
-  background-attachment: fixed;
   min-height: 100dvh;
+  background-color: var(--color-ink-950);
+  background-image:
+    radial-gradient(
+      ellipse 80% 55% at 50% 108%,
+      rgba(56, 189, 248, 0.22),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 60% 40% at 50% -8%,
+      rgba(56, 189, 248, 0.14),
+      transparent 65%
+    ),
+    radial-gradient(circle at 12% 20%, rgba(2, 132, 199, 0.1), transparent 40%),
+    radial-gradient(circle at 88% 12%, rgba(2, 132, 199, 0.1), transparent 40%);
+  background-attachment: fixed;
 }
 
-/* Bỏ mũi tên tăng/giảm để nhập số nhanh trên điện thoại. */
+/* Lưới chấm constellation */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: radial-gradient(
+    rgba(125, 211, 252, 0.16) 1px,
+    transparent 1px
+  );
+  background-size: 34px 34px;
+  mask-image: radial-gradient(ellipse 75% 65% at 50% 45%, #000 30%, transparent 78%);
+}
+
+body > * {
+  position: relative;
+  z-index: 1;
+}
+
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -55,14 +97,88 @@ input[type="number"] {
 }
 
 /* ------------------------------------------------------------------ */
+/* Khung tech vát góc                                                  */
+/* ------------------------------------------------------------------ */
+
+.clip-notch {
+  clip-path: polygon(
+    14px 0,
+    calc(100% - 14px) 0,
+    100% 14px,
+    100% calc(100% - 14px),
+    calc(100% - 14px) 100%,
+    14px 100%,
+    0 calc(100% - 14px),
+    0 14px
+  );
+}
+
+.clip-notch-sm {
+  clip-path: polygon(
+    8px 0,
+    calc(100% - 8px) 0,
+    100% 8px,
+    100% calc(100% - 8px),
+    calc(100% - 8px) 100%,
+    8px 100%,
+    0 calc(100% - 8px),
+    0 8px
+  );
+}
+
+/* Chữ kim loại như logo chương trình */
+.chrome {
+  background-image: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    #cfe6ff 34%,
+    #7fa8c9 52%,
+    #eaf5ff 68%,
+    #9dc4e4 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 28px rgba(56, 189, 248, 0.28);
+}
+
+.neon-text {
+  text-shadow:
+    0 0 8px rgba(56, 189, 248, 0.55),
+    0 0 22px rgba(56, 189, 248, 0.28);
+}
+
+.glow-soft {
+  box-shadow:
+    0 0 0 1px rgba(56, 189, 248, 0.16),
+    0 0 26px -8px rgba(56, 189, 248, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Vòng HUD trang trí */
+.hud-rings::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(140%, 900px);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    repeating-radial-gradient(
+      circle,
+      transparent 0 62px,
+      rgba(56, 189, 248, 0.07) 62px 63px
+    );
+  mask-image: radial-gradient(circle, #000 35%, transparent 72%);
+}
+
+/* ------------------------------------------------------------------ */
 /* Chuyển động                                                         */
 /* ------------------------------------------------------------------ */
 
-/*
- * Panel xuất hiện khi GM chuyển giai đoạn — mục đích: bắc cầu cho nội dung
- * vốn sẽ nhảy cóc. CSS animation (chạy ngoài main thread) thay vì JS, vì
- * đây là chuyển động định sẵn và trang có thể đang bận gọi API.
- */
 @keyframes enter-rise {
   from {
     opacity: 0;
@@ -80,9 +196,8 @@ input[type="number"] {
 }
 
 /*
- * Banner lỗi có thể bắn liên tiếp (bấm sai luật vài lần trong một giây).
- * Dùng transition + @starting-style chứ không dùng keyframes: transition
- * bám theo giá trị hiện tại, keyframes thì giật về mốc 0 mỗi lần kích hoạt.
+ * Banner lỗi có thể bắn liên tiếp — transition + @starting-style bám theo
+ * giá trị hiện tại, keyframes thì giật về mốc 0 mỗi lần kích hoạt.
  */
 .enter-banner {
   opacity: 1;
@@ -99,7 +214,7 @@ input[type="number"] {
   }
 }
 
-/* Con số Energy đổi khi GM khóa kết quả — báo hiệu trạng thái đã đổi. */
+/* Con số vừa được chốt — báo hiệu trạng thái đổi, chạy đúng một lần */
 @keyframes value-pop {
   0% {
     transform: scale(1);
@@ -116,26 +231,51 @@ input[type="number"] {
   animation: value-pop 260ms var(--ease-out);
 }
 
-@keyframes pulse-ring {
-  0% {
-    box-shadow: 0 0 0 0 rgba(245, 197, 66, 0.45);
+/* Ánh kim quét ngang tiêu đề — chậm và mờ, chỉ dùng ở màn trình diễn */
+@keyframes chrome-sweep {
+  from {
+    background-position: -240% 0;
   }
-  70% {
-    box-shadow: 0 0 0 12px rgba(245, 197, 66, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(245, 197, 66, 0);
+  to {
+    background-position: 340% 0;
   }
 }
 
-.pulse-ring {
-  animation: pulse-ring 2s infinite;
+.chrome-sweep {
+  position: relative;
+  overflow: hidden;
 }
 
-/*
- * Ít và nhẹ hơn, không phải bằng không: giữ fade để người dùng vẫn thấy
- * nội dung mới xuất hiện, bỏ toàn bộ dịch chuyển và phóng to.
- */
+.chrome-sweep::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 42%,
+    rgba(255, 255, 255, 0.5) 50%,
+    transparent 58%
+  );
+  background-size: 220% 100%;
+  animation: chrome-sweep 7s var(--ease-in-out) infinite;
+  mix-blend-mode: overlay;
+}
+
+/* Viền booster thở nhẹ — chỉ trên thẻ Booster, không trên số liệu */
+@keyframes edge-breathe {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.edge-breathe {
+  animation: edge-breathe 2.8s var(--ease-in-out) infinite alternate;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .enter {
     animation: none;
@@ -155,8 +295,13 @@ input[type="number"] {
   }
 
   .value-pop,
-  .pulse-ring {
+  .edge-breathe {
     animation: none;
+  }
+
+  .chrome-sweep::after {
+    animation: none;
+    opacity: 0;
   }
 
   *,

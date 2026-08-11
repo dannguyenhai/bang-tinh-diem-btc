@@ -95,7 +95,7 @@ function FundTable() {
         return (
           <div
             key={id}
-            className="rounded-xl border border-ink-700 bg-ink-800/40 p-2.5"
+            className="rounded-lg border border-ink-700 bg-linear-to-b from-ink-800/50 to-ink-950/50 p-2.5"
             style={{ borderLeft: `3px solid ${data.teams[id].color}` }}
           >
             <p className="truncate text-[11px] font-bold text-ink-200">
@@ -168,7 +168,7 @@ function SealedRow({ teamId }: { teamId: TeamId }) {
 
   return (
     <div
-      className="rounded-xl border border-ink-700 bg-ink-800/40 p-3"
+      className="rounded-lg border border-ink-700 bg-linear-to-b from-ink-800/50 to-ink-950/50 p-3"
       style={{ borderLeft: `3px solid ${data.teams[teamId].color}` }}
     >
       <div className="flex items-center justify-between">
@@ -303,7 +303,7 @@ function PublicRound() {
       title={`Lô ${data.auction.currentLotIndex + 1}/${data.auction.order.length} — ${BOOSTER_META[booster].name}`}
       subtitle={`Thứ tự: ${data.auction.order.join(" → ")}`}
     >
-      {lot.note && <p className="mb-3 text-xs text-brand">{lot.note}</p>}
+      {lot.note && <p className="mb-3 text-xs text-neon">{lot.note}</p>}
 
       {lot.status === "TIE_BREAK" ? (
         <div className="space-y-2.5">
@@ -339,7 +339,7 @@ function PublicRound() {
             {lot.candidates.map((teamId) => (
               <div
                 key={teamId}
-                className="rounded-xl border border-ink-700 bg-ink-800/40 p-2.5"
+                className="rounded-lg border border-ink-700 bg-linear-to-b from-ink-800/50 to-ink-950/50 p-2.5"
                 style={{ borderLeft: `3px solid ${data.teams[teamId].color}` }}
               >
                 <div className="flex items-center justify-between">
@@ -503,7 +503,7 @@ function AuctionSummary() {
           return (
             <div
               key={booster}
-              className="flex items-center justify-between rounded-xl border border-ink-700 bg-ink-800/40 px-3 py-2.5"
+              className="rounded-lg flex items-center justify-between border border-ink-700 bg-linear-to-r from-ink-800/50 to-ink-950/50 px-3 py-2.5"
             >
               <div>
                 <p className="text-sm font-bold text-white">

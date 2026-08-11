@@ -26,29 +26,38 @@ export function ChallengeControl() {
       {!data.energyOpened && <OpenEnergyForm />}
 
       <Card title="Tiến trình gameshow">
-        <div className="grid grid-cols-5 gap-1.5 sm:gap-2.5">
-          {CHALLENGE_IDS.map((id) => {
-            const status = data.challenges[id].status;
-            const tone =
-              status === "PUBLISHED" || status === "RESULT_LOCKED"
-                ? "border-win/50 bg-win/10 text-win"
-                : status === "IDLE"
-                  ? "border-ink-700 bg-ink-800/50 text-ink-400"
-                  : "border-brand/60 bg-brand/10 text-brand";
-            return (
-              <div
-                key={id}
-                className={`rounded-xl border px-1.5 py-2.5 text-center transition-colors duration-200 ease-out sm:px-3 sm:py-3 ${tone}`}
-              >
-                <div className="text-sm font-black sm:text-base">
-                  {CHALLENGES[id].shortName}
+        <div className="relative">
+          {/* Đường nối giữa 5 chặng */}
+          <div
+            aria-hidden
+            className="absolute top-7 right-[10%] left-[10%] h-px bg-linear-to-r from-transparent via-ink-600 to-transparent"
+          />
+          <div className="relative grid grid-cols-5 gap-1.5 sm:gap-2.5">
+            {CHALLENGE_IDS.map((id, index) => {
+              const status = data.challenges[id].status;
+              const done = status === "PUBLISHED" || status === "RESULT_LOCKED";
+              const idle = status === "IDLE";
+              const tone = done
+                ? "border-win/50 bg-win/8 text-win"
+                : idle
+                  ? "border-ink-700 bg-ink-900/60 text-ink-400"
+                  : "border-neon/60 bg-neon/10 text-neon shadow-[0_0_22px_-8px_var(--color-neon)]";
+              return (
+                <div
+                  key={id}
+                  style={{ "--stagger": index } as React.CSSProperties}
+                  className={`enter rounded-lg border px-1 py-2.5 text-center transition-colors duration-200 ease-out sm:px-3 sm:py-3 ${tone}`}
+                >
+                  <div className="text-sm font-black sm:text-lg">
+                    {CHALLENGES[id].shortName}
+                  </div>
+                  <div className="mt-0.5 text-[8px] leading-tight font-bold uppercase sm:text-[10px]">
+                    {CHALLENGE_STATUS_LABEL[status]}
+                  </div>
                 </div>
-                <div className="mt-0.5 text-[9px] leading-tight font-bold uppercase sm:text-[10px]">
-                  {CHALLENGE_STATUS_LABEL[status]}
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </Card>
 
@@ -226,7 +235,7 @@ function ChallengeDetail({ challengeId }: { challengeId: ChallengeId }) {
         )}
 
         {status === "RESULT_LOCKED" && (
-          <div className="space-y-2 rounded-xl border border-ink-700 bg-ink-800/40 p-3">
+          <div className="rounded-lg space-y-2 border border-lose/30 bg-lose/5 p-3">
             <p className="text-xs text-ink-400">
               Cần sửa? Phải mở lại kèm lý do, hệ thống ghi vào nhật ký.
             </p>
@@ -234,7 +243,7 @@ function ChallengeDetail({ challengeId }: { challengeId: ChallengeId }) {
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Lý do mở lại…"
-              className="w-full rounded-xl border border-ink-600 bg-ink-950 px-3 py-2.5 text-sm text-white outline-none focus:border-brand"
+              className="rounded-lg w-full border border-ink-600 bg-ink-950 px-3 py-2.5 text-sm text-white outline-none transition-colors duration-150 ease-out focus:border-neon"
             />
             <Button
               full
@@ -282,7 +291,7 @@ function TeamRow({
 
   return (
     <div
-      className="enter rounded-xl border border-ink-700 bg-ink-800/40 p-3"
+      className="enter rounded-lg border border-ink-700 bg-linear-to-b from-ink-800/50 to-ink-950/50 p-3"
       style={
         {
           borderLeft: `3px solid ${team.color}`,
@@ -405,8 +414,8 @@ function TeamRow({
       )}
 
       {status === "BOOSTER_RESPONSE" && canRespond && team.boosterOwned && (
-        <div className="mt-2.5 rounded-lg border border-brand/40 bg-brand/5 p-2.5">
-          <p className="mb-2 text-xs text-brand">
+        <div className="rounded-lg mt-2.5 border border-neon/40 bg-neon/5 p-2.5">
+          <p className="mb-2 text-xs text-neon">
             {BOOSTER_META[team.boosterOwned].name} — chờ Captain quyết định
           </p>
           {entry.reactiveBoosterActivation === null ? (
@@ -450,7 +459,7 @@ function TeamRow({
         (status === "GM_REVIEW" ||
           status === "RESULT_LOCKED" ||
           status === "BOOSTER_RESPONSE") && (
-          <div className="mt-3 rounded-lg border border-ink-700 bg-ink-950/50 p-3">
+          <div className="rounded-lg mt-3 border border-ink-700 bg-ink-950/70 p-3">
             <Breakdown lines={projection.breakdown} />
           </div>
         )}

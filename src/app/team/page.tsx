@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AppShell, GuardMessage, LoadingScreen } from "@/components/AppShell";
 import { Breakdown } from "@/components/Breakdown";
-import { Badge, Button, Card, Empty, NumberField, Stat } from "@/components/ui";
+import { Badge, Button, Card, Empty, NumberField, Panel, Stat } from "@/components/ui";
 import {
   AUCTION_PHASE_LABEL,
   BOOSTER_IDS,
@@ -84,24 +84,73 @@ function BoosterCard({ teamId }: { teamId: TeamId }) {
       </Card>
     );
   }
+
   const meta = BOOSTER_META[team.boosterOwned];
+  const spent = team.boosterUsed;
+
   return (
-    <Card
-      title="Booster của đội"
-      right={
-        team.boosterUsed ? (
-          <Badge tone="lose">Đã dùng</Badge>
-        ) : (
-          <Badge tone="win">Còn hiệu lực</Badge>
-        )
-      }
-    >
-      <p className="text-lg font-black text-brand">{meta.name}</p>
-      <p className="mt-0.5 text-xs font-bold tracking-wider text-ink-400 uppercase">
-        {meta.tagline}
-      </p>
-      <p className="mt-2 text-sm text-ink-200">{meta.description}</p>
-    </Card>
+    <Panel color={meta.color} breathe={!spent} className="enter">
+      <div className="relative px-5 py-6 sm:px-7 sm:py-7">
+        {/* Quầng sáng sau thẻ, lấy màu riêng của Booster */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-45"
+          style={{
+            background: `radial-gradient(ellipse 70% 80% at 22% 30%, ${meta.color}2e, transparent 62%)`,
+          }}
+        />
+
+        <div className="relative flex items-start gap-4 sm:gap-6">
+          <div
+            className="rounded-lg flex h-16 w-16 shrink-0 items-center justify-center border sm:h-20 sm:w-20"
+            style={{
+              borderColor: `${meta.color}66`,
+              background: `linear-gradient(160deg, ${meta.color}24, transparent)`,
+              boxShadow: spent ? undefined : `0 0 26px -10px ${meta.color}`,
+            }}
+          >
+            <span
+              className="text-2xl font-black sm:text-3xl"
+              style={{
+                color: meta.color,
+                textShadow: spent ? undefined : `0 0 16px ${meta.color}`,
+              }}
+            >
+              {meta.short.charAt(0)}
+            </span>
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-[10px] font-bold tracking-[0.28em] text-ink-400 uppercase">
+                Booster của đội
+              </p>
+              {spent ? (
+                <Badge tone="lose">Đã dùng</Badge>
+              ) : (
+                <Badge tone="win">Còn hiệu lực</Badge>
+              )}
+            </div>
+
+            <h2
+              className="mt-1.5 text-xl font-black tracking-wide sm:text-2xl"
+              style={{
+                color: meta.color,
+                textShadow: spent ? undefined : `0 0 22px ${meta.color}55`,
+              }}
+            >
+              {meta.name}
+            </h2>
+            <p className="mt-0.5 text-[10px] font-bold tracking-[0.2em] text-ink-400 uppercase">
+              {meta.tagline}
+            </p>
+            <p className="mt-2.5 text-sm leading-relaxed text-ink-200">
+              {meta.description}
+            </p>
+          </div>
+        </div>
+      </div>
+    </Panel>
   );
 }
 
@@ -126,12 +175,13 @@ function ChallengeSection({
       subtitle={config.participantType}
       right={<Badge tone="info">{CHALLENGE_STATUS_LABEL[challenge.status]}</Badge>}
     >
-      <div className="mb-3 flex items-center justify-between rounded-xl border border-brand/30 bg-brand/5 px-3 py-2.5">
+      <div className="rounded-lg mb-3 flex items-center justify-between border border-brand/35 bg-linear-to-r from-brand/12 to-transparent px-3.5 py-3">
         <span className="text-[11px] font-bold tracking-[0.14em] text-ink-200 uppercase">
           Reward
         </span>
-        <span className="tabular text-xl font-black text-brand">
-          {config.baseReward} Energy
+        <span className="tabular text-xl font-black text-brand sm:text-2xl" style={{ textShadow: "0 0 18px rgba(245,197,66,0.35)" }}>
+          {config.baseReward}
+          <span className="ml-1.5 text-[10px] tracking-[0.2em] text-brand-dim">ENERGY</span>
         </span>
       </div>
 
@@ -275,8 +325,8 @@ function InvestmentForm({
       />
 
       {canPreActivate && team.boosterOwned && (
-        <div className="rounded-xl border border-brand/40 bg-brand/5 p-3">
-          <p className="text-sm font-bold text-brand">
+        <div className="rounded-lg border border-neon/40 bg-neon/5 p-3">
+          <p className="text-sm font-bold text-neon">
             {BOOSTER_META[team.boosterOwned].name}
           </p>
           <p className="mt-1 mb-3 text-xs text-ink-200">
@@ -357,8 +407,8 @@ function BoosterResponsePanel({
   return (
     <div className="space-y-3">
       <Badge tone="lose">Kết quả: KHÔNG CHIẾN THẮNG</Badge>
-      <div className="rounded-xl border border-brand/40 bg-brand/5 p-3">
-        <p className="text-sm font-bold text-brand">{meta.name}</p>
+      <div className="rounded-lg border border-neon/40 bg-neon/5 p-3">
+        <p className="text-sm font-bold text-neon">{meta.name}</p>
         <p className="mt-1 text-xs text-ink-200">{meta.description}</p>
       </div>
 
@@ -572,8 +622,8 @@ function PublicAuctionPanel({ teamId }: { teamId: TeamId }) {
 
   return (
     <div className="space-y-3">
-      <div className="rounded-xl border border-brand/40 bg-brand/5 p-3">
-        <p className="text-xs font-bold tracking-[0.14em] text-ink-400 uppercase">
+      <div className="rounded-lg border border-neon/40 bg-neon/5 p-3">
+        <p className="text-[10px] font-bold tracking-[0.24em] text-ink-400 uppercase">
           Đang đấu
         </p>
         <p className="text-lg font-black text-brand">
@@ -681,7 +731,7 @@ function FallbackPanel({ teamId }: { teamId: TeamId }) {
           onClick={() =>
             dispatch({ type: "assignFallbackBooster", teamId, booster })
           }
-          className="flex w-full items-center justify-between rounded-xl border border-ink-600 bg-ink-800/60 px-4 py-3 text-left hover:border-brand"
+          className="rounded-lg flex w-full items-center justify-between border border-ink-600 bg-linear-to-r from-ink-800/60 to-ink-950/60 px-4 py-3 text-left transition-[border-color,transform] duration-150 ease-out hover:border-neon active:scale-[0.99]"
         >
           <span>
             <span className="block text-sm font-bold text-white">

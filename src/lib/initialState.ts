@@ -125,7 +125,14 @@ export function normalizeGameData(raw: unknown): GameData {
   const teams = { ...fallback.teams };
   if (data.teams) {
     for (const id of TEAM_IDS) {
-      if (data.teams[id]) teams[id] = { ...fallback.teams[id], ...data.teams[id] };
+      if (data.teams[id]) {
+        teams[id] = {
+          ...fallback.teams[id],
+          ...data.teams[id],
+          // Bảng màu do config quyết định, không lấy theo dữ liệu đã lưu.
+          color: fallback.teams[id].color,
+        };
+      }
     }
   }
 

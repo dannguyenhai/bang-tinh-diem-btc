@@ -69,10 +69,17 @@ export function AppShell({
 
   return (
     <div className="min-h-dvh pb-24">
-      <header className="sticky top-0 z-40 border-b border-ink-800 bg-ink-950/85 backdrop-blur">
+      <header className="sticky top-0 z-40 bg-ink-950/88 backdrop-blur">
         <div
           className={`mx-auto flex items-center gap-3 px-4 py-3 sm:px-6 lg:px-8 ${width}`}
         >
+          <span
+            className="h-9 w-1 shrink-0"
+            style={{
+              background: accent ?? "var(--color-neon)",
+              boxShadow: `0 0 12px ${accent ?? "var(--color-neon)"}`,
+            }}
+          />
           <div className="min-w-0 flex-1">
             <h1
               className="truncate text-base font-black tracking-wide sm:text-lg"
@@ -81,7 +88,9 @@ export function AppShell({
               {title}
             </h1>
             {subtitle && (
-              <p className="truncate text-xs text-ink-400">{subtitle}</p>
+              <p className="truncate text-[10px] font-bold tracking-[0.2em] text-ink-400 uppercase">
+                {subtitle}
+              </p>
             )}
           </div>
           <SyncPill />
@@ -97,6 +106,8 @@ export function AppShell({
             </button>
           )}
         </div>
+        {/* Đường neon mảnh chạy hết bề ngang, thay cho border xám */}
+        <div className="h-px bg-linear-to-r from-transparent via-neon/45 to-transparent" />
       </header>
 
       <main

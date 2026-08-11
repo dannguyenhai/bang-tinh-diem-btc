@@ -30,13 +30,13 @@ export function AuditLogPanel() {
           {log.map((entry) => (
             <li
               key={entry.id}
-              className="rounded-lg border border-ink-700 bg-ink-800/40 px-3 py-2"
+              className="rounded-lg border border-ink-700 bg-ink-900/50 px-3 py-2"
             >
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                 <span className="tabular text-[11px] text-ink-400">
                   {formatTime(entry.timestamp)}
                 </span>
-                <span className="text-[11px] font-bold text-info">
+                <span className="text-[11px] font-bold text-neon">
                   {entry.actor}
                 </span>
                 {entry.challengeId && (

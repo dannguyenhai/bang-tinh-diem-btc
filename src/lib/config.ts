@@ -7,10 +7,10 @@ export const CHALLENGE_IDS: ChallengeId[] = [1, 2, 3, 4, 5];
 export const BOOSTER_IDS: BoosterId[] = ["ALPHA", "BETA", "GAMMA", "DELTA"];
 
 export const DEFAULT_TEAMS = [
-  { id: "TEAM_1" as TeamId, name: "TEAM ALPHA", color: "#f97316", pin: "1111" },
-  { id: "TEAM_2" as TeamId, name: "TEAM BETA", color: "#38bdf8", pin: "2222" },
-  { id: "TEAM_3" as TeamId, name: "TEAM GAMMA", color: "#a78bfa", pin: "3333" },
-  { id: "TEAM_4" as TeamId, name: "TEAM DELTA", color: "#34d399", pin: "4444" },
+  { id: "TEAM_1" as TeamId, name: "TEAM ALPHA", color: "#38bdf8", pin: "1111" },
+  { id: "TEAM_2" as TeamId, name: "TEAM BETA", color: "#f5c542", pin: "2222" },
+  { id: "TEAM_3" as TeamId, name: "TEAM GAMMA", color: "#c084fc", pin: "3333" },
+  { id: "TEAM_4" as TeamId, name: "TEAM DELTA", color: "#4ade80", pin: "4444" },
 ];
 
 export const GM_DEFAULT_PIN = "9999";
@@ -67,9 +67,19 @@ export const CHALLENGES: Record<ChallengeId, ChallengeConfig> = {
 
 export const BOOSTER_META: Record<
   BoosterId,
-  { name: string; tagline: string; timing: "PRE" | "REACTIVE"; description: string }
+  {
+    name: string;
+    short: string;
+    /** Màu nhận diện riêng của từng Booster trên sân khấu. */
+    color: string;
+    tagline: string;
+    timing: "PRE" | "REACTIVE";
+    description: string;
+  }
 > = {
   ALPHA: {
+    short: "ALPHA",
+    color: "#38bdf8",
     name: "ALPHA — AI BOOSTER",
     tagline: "Kích hoạt TRƯỚC thử thách",
     timing: "PRE",
@@ -77,12 +87,16 @@ export const BOOSTER_META: Record<
       "Thắng: +40 Energy thưởng thêm. Thua: mất Investment và bị phạt thêm 10 Energy (không xuống dưới 0).",
   },
   BETA: {
+    short: "BETA",
+    color: "#22d3ee",
     name: "BETA — SHIELD",
     tagline: "Chỉ dùng SAU khi thua",
     timing: "REACTIVE",
     description: "Che chắn tối đa 25 Energy trong phần Investment vừa mất.",
   },
   GAMMA: {
+    short: "GAMMA",
+    color: "#fb923c",
     name: "GAMMA — OVERDRIVE",
     tagline: "Kích hoạt TRƯỚC thử thách",
     timing: "PRE",
@@ -90,6 +104,8 @@ export const BOOSTER_META: Record<
       "Thắng: cộng thêm 50% Reward (TT4 +45, TT5 +50). Thua: chỉ mất Investment, không phạt thêm.",
   },
   DELTA: {
+    short: "DELTA",
+    color: "#f472b6",
     name: "DELTA — RESCUE",
     tagline: "Chỉ dùng SAU khi thua",
     timing: "REACTIVE",
