@@ -362,5 +362,118 @@ M.publishScoreboard(k, gm);
 eq("TT3 chuyển sang đã công bố", k.challenges[3].status, "PUBLISHED");
 eq("Hết việc phải công bố", hasPendingPublish(k), false);
 
+
+
+/* --- Vòng đời Booster qua TT4 và TT5 --- */
+function newGameAt4(booster: "ALPHA" | "BETA" | "GAMMA" | "DELTA") {
+  const s = createInitialGameData(100, () => "hash");
+  M.openEnergy(s, gm, { TEAM_1: 200, TEAM_2: 200, TEAM_3: 200, TEAM_4: 200 });
+  for (const id of [1, 2, 3] as ChallengeId[]) {
+    M.openChallenge(s, gm, id);
+    if (s.challenges[id].status === "OPEN_FOR_INVESTMENT") {
+      T.forEach((t) => M.submitInvestment(s, gm, t, id, 1, false));
+      M.lockInvestment(s, gm, id);
+    }
+    M.startResultEntry(s, gm, id);
+    T.forEach((t) => M.setResult(s, gm, t, id, "LOSE"));
+    M.lockResult(s, gm, id);
+  }
+  T.forEach((t) => { s.teams[t].boosterOwned = booster; });
+  return s;
+}
+
+/* Alpha: chọn KHÔNG ở TT4 → giữ nguyên, TT5 vẫn được hỏi */
+const a = newGameAt4("ALPHA");
+M.openChallenge(a, gm, 4);
+T.forEach((t) => M.submitInvestment(a, gm, t, 4, 20, false));
+M.lockInvestment(a, gm, 4);
+M.startResultEntry(a, gm, 4);
+T.forEach((t) => M.setResult(a, gm, t, 4, "WIN"));
+M.lockResult(a, gm, 4);
+eq("Alpha chọn KHÔNG ở TT4 → chưa bị tiêu", a.teams.TEAM_1.boosterUsed, false);
+eq("Alpha chọn KHÔNG → thắng chỉ nhận reward + investment", a.teams.TEAM_1.currentEnergy, a.challenges[4].entries.TEAM_1.energyBefore! + 90 + 20);
+
+M.publishScoreboard(a, gm);
+M.openChallenge(a, gm, 5);
+T.forEach((t) => M.submitInvestment(a, gm, t, 5, 20, true));
+M.lockInvestment(a, gm, 5);
+M.startResultEntry(a, gm, 5);
+T.forEach((t) => M.setResult(a, gm, t, 5, "WIN"));
+const beforeTT5 = a.challenges[5].entries.TEAM_1.energyBefore!;
+M.lockResult(a, gm, 5);
+eq("Alpha để dành được tới TT5", a.teams.TEAM_1.currentEnergy, beforeTT5 + 100 + 20 + 40);
+eq("Sau TT5 Alpha mới tính là đã dùng", a.teams.TEAM_1.boosterUsed, true);
+eq("Ghi nhận dùng ở đúng vòng 5", a.teams.TEAM_1.boosterActivatedAtChallenge, 5);
+
+/* Alpha: chọn CÓ ở TT4 → tiêu ngay, TT5 không được hỏi nữa */
+const a2 = newGameAt4("ALPHA");
+M.openChallenge(a2, gm, 4);
+T.forEach((t) => M.submitInvestment(a2, gm, t, 4, 20, true));
+M.lockInvestment(a2, gm, 4);
+M.startResultEntry(a2, gm, 4);
+T.forEach((t) => M.setResult(a2, gm, t, 4, "WIN"));
+M.lockResult(a2, gm, 4);
+eq("Alpha chọn CÓ → tiêu ngay ở TT4", a2.teams.TEAM_1.boosterUsed, true);
+
+M.publishScoreboard(a2, gm);
+M.openChallenge(a2, gm, 5);
+M.submitInvestment(a2, gm, "TEAM_1", 5, 20, true);
+eq("TT5 không kích hoạt lại được Booster đã dùng", a2.challenges[5].entries.TEAM_1.preBoosterActivation, false);
+
+/* Beta: thắng TT4 thì không bị hỏi, Booster còn nguyên cho TT5 */
+const bt = newGameAt4("BETA");
+M.openChallenge(bt, gm, 4);
+T.forEach((t) => M.submitInvestment(bt, gm, t, 4, 30, false));
+M.lockInvestment(bt, gm, 4);
+M.startResultEntry(bt, gm, 4);
+M.setResult(bt, gm, "TEAM_1", 4, "WIN");
+T.slice(1).forEach((t) => M.setResult(bt, gm, t, 4, "LOSE"));
+eq("Đội thắng không nằm trong nhóm được hỏi Booster", M.getBoosterResponseTeams(bt, 4).includes("TEAM_1"), false);
+eq("Ba đội thua thì được hỏi", M.getBoosterResponseTeams(bt, 4).length, 3);
+
+M.openBoosterResponse(bt, gm, 4);
+M.setReactiveBooster(bt, gm, "TEAM_2", 4, true);   // dùng
+M.setReactiveBooster(bt, gm, "TEAM_3", 4, false);  // giữ
+M.closeBoosterResponse(bt, gm, 4);
+const beta3Before = bt.challenges[4].entries.TEAM_3.energyBefore!;
+M.lockResult(bt, gm, 4);
+eq("Beta DÙNG → che 25 trong 30 đã mất", bt.teams.TEAM_2.currentEnergy, bt.challenges[4].entries.TEAM_2.energyBefore! - 5);
+eq("Beta DÙNG → tiêu Booster", bt.teams.TEAM_2.boosterUsed, true);
+eq("Beta GIỮ → mất trọn Investment", bt.teams.TEAM_3.currentEnergy, beta3Before - 30);
+eq("Beta GIỮ → Booster còn nguyên", bt.teams.TEAM_3.boosterUsed, false);
+eq("Đội thắng giữ nguyên Booster", bt.teams.TEAM_1.boosterUsed, false);
+
+M.publishScoreboard(bt, gm);
+M.openChallenge(bt, gm, 5);
+T.forEach((t) => M.submitInvestment(bt, gm, t, 5, 30, false));
+M.lockInvestment(bt, gm, 5);
+M.startResultEntry(bt, gm, 5);
+T.forEach((t) => M.setResult(bt, gm, t, 5, "LOSE"));
+const askedAtTT5 = M.getBoosterResponseTeams(bt, 5);
+eq("TT5 hỏi lại đội đã GIỮ", askedAtTT5.includes("TEAM_3"), true);
+eq("TT5 vẫn hỏi đội thắng ở TT4", askedAtTT5.includes("TEAM_1"), true);
+eq("TT5 không hỏi đội đã DÙNG", askedAtTT5.includes("TEAM_2"), false);
+
+/* Delta: chỉ mở khi Energy sau khi thua ≤ 80 */
+const d = newGameAt4("DELTA");
+d.teams.TEAM_1.currentEnergy = 100;
+d.teams.TEAM_2.currentEnergy = 300;
+M.openChallenge(d, gm, 4);
+M.submitInvestment(d, gm, "TEAM_1", 4, 30, false);
+M.submitInvestment(d, gm, "TEAM_2", 4, 30, false);
+M.submitInvestment(d, gm, "TEAM_3", 4, 30, false);
+M.submitInvestment(d, gm, "TEAM_4", 4, 30, false);
+M.lockInvestment(d, gm, 4);
+M.startResultEntry(d, gm, 4);
+T.forEach((t) => M.setResult(d, gm, t, 4, "LOSE"));
+const deltaAsked = M.getBoosterResponseTeams(d, 4);
+eq("Delta mở khi 100-30=70 ≤ 80", deltaAsked.includes("TEAM_1"), true);
+eq("Delta khóa khi 300-30=270 > 80", deltaAsked.includes("TEAM_2"), false);
+M.openBoosterResponse(d, gm, 4);
+M.setReactiveBooster(d, gm, "TEAM_1", 4, true);
+M.closeBoosterResponse(d, gm, 4);
+M.lockResult(d, gm, 4);
+eq("Delta hoàn 50% của 30, tối đa 20 → 85", d.teams.TEAM_1.currentEnergy, 85);
+
 console.log(`\n${pass} đạt / ${fail} lỗi`);
 process.exit(fail > 0 ? 1 : 0);

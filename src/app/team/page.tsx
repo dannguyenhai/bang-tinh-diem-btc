@@ -352,10 +352,32 @@ function InvestmentForm({
             </Button>
           </div>
           <p className="mt-2 text-xs text-ink-400">
-            Đã kích hoạt là tính đã dùng, dù thắng hay thua.
+            Chọn Có là tính đã dùng, dù thắng hay thua. Chọn Không thì Booster
+            được giữ nguyên cho vòng sau.
           </p>
         </div>
       )}
+
+      {/*
+        Beta/Delta không kích hoạt trước được, nhưng im lặng ở đây khiến đội
+        tưởng hệ thống quên mất Booster của mình.
+      */}
+      {config.boosterEnabled &&
+        !team.boosterUsed &&
+        (team.boosterOwned === "BETA" || team.boosterOwned === "DELTA") && (
+          <div className="rounded-lg border border-ink-600 bg-ink-800/40 p-3">
+            <p className="text-sm font-bold text-ink-200">
+              {BOOSTER_META[team.boosterOwned].name}
+            </p>
+            <p className="mt-1 text-xs text-ink-400">
+              {BOOSTER_META[team.boosterOwned].description}
+            </p>
+            <p className="mt-2 text-xs text-neon">
+              Loại này không chốt trước. Nếu vòng này đội không thắng, Game
+              Master sẽ mở ô quyết định DÙNG / GIỮ cho Captain.
+            </p>
+          </div>
+        )}
 
       <Button type="submit" full disabled={!check.ok || saving}>
         {saving ? "Đang gửi…" : "Gửi Investment"}

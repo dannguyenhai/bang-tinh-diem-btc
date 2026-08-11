@@ -301,8 +301,16 @@ function TeamRow({
   const energyBefore = entry.energyBefore ?? team.currentEnergy;
 
   const [draftInvestment, setDraftInvestment] = useState("");
+  const [draftActivate, setDraftActivate] = useState(false);
   const projection = projectEntry(data, challengeId, teamId);
   const canRespond = getBoosterResponseTeams(data, challengeId).includes(teamId);
+
+  // Alpha/Gamma phải chốt trước giờ thi đấu — GM nhập hộ cũng phải chốt được,
+  // nếu không đội sẽ mất quyền dùng Booster chỉ vì không kịp tự nhập.
+  const canPreActivate =
+    config.boosterEnabled &&
+    !team.boosterUsed &&
+    (team.boosterOwned === "ALPHA" || team.boosterOwned === "GAMMA");
 
   return (
     <div
@@ -353,31 +361,70 @@ function TeamRow({
               )}
             </p>
           ) : (
-            <div className="flex items-end gap-2">
-              <NumberField
-                className="flex-1"
-                label="Nhập hộ Investment"
-                value={draftInvestment}
-                onChange={(e) =>
-                  setDraftInvestment(e.target.value.replace(/[^\d]/g, ""))
-                }
-              />
-              <Button
-                variant="subtle"
-                disabled={!draftInvestment}
-                onClick={async () => {
-                  const ok = await dispatch({
-                    type: "submitInvestment",
-                    teamId,
-                    challengeId,
-                    investment: Number(draftInvestment),
-                    preBoosterActivation: false,
-                  });
-                  if (ok) setDraftInvestment("");
-                }}
-              >
-                Gửi
-              </Button>
+            <div className="space-y-2">
+              <div className="flex items-end gap-2">
+                <NumberField
+                  className="flex-1"
+                  label="Nhập hộ Investment"
+                  value={draftInvestment}
+                  onChange={(e) =>
+                    setDraftInvestment(e.target.value.replace(/[^\d]/g, ""))
+                  }
+                />
+                <Button
+                  variant="subtle"
+                  disabled={!draftInvestment}
+                  onClick={async () => {
+                    const ok = await dispatch({
+                      type: "submitInvestment",
+                      teamId,
+                      challengeId,
+                      investment: Number(draftInvestment),
+                      preBoosterActivation: canPreActivate && draftActivate,
+                    });
+                    if (ok) {
+                      setDraftInvestment("");
+                      setDraftActivate(false);
+                    }
+                  }}
+                >
+                  Gửi
+                </Button>
+              </div>
+
+              {canPreActivate && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] font-bold tracking-[0.14em] text-ink-400 uppercase">
+                    Kích hoạt {team.boosterOwned}?
+                  </span>
+                  <div className="flex gap-1.5">
+                    <Button
+                      variant={draftActivate ? "win" : "ghost"}
+                      className="px-3 py-1.5 text-[11px]"
+                      onClick={() => setDraftActivate(true)}
+                    >
+                      Có
+                    </Button>
+                    <Button
+                      variant={!draftActivate ? "lose" : "ghost"}
+                      className="px-3 py-1.5 text-[11px]"
+                      onClick={() => setDraftActivate(false)}
+                    >
+                      Không
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {config.boosterEnabled &&
+                !team.boosterUsed &&
+                (team.boosterOwned === "BETA" ||
+                  team.boosterOwned === "DELTA") && (
+                  <p className="text-[11px] text-ink-400">
+                    {team.boosterOwned} chỉ quyết định sau khi đội thua — sẽ hỏi
+                    ở bước Booster Response.
+                  </p>
+                )}
             </div>
           )}
         </div>
