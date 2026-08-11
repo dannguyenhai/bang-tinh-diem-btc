@@ -146,7 +146,13 @@ M.assignFallbackBooster(g, gm, order[0], M.getUnassignedBoosters(g)[0]);
 M.assignFallbackBooster(g, gm, order[1], M.getUnassignedBoosters(g)[0]);
 eq("Đấu giá hoàn tất", g.auction.phase, "DONE");
 eq("Cả 4 đội đều có Booster", T.every((t) => g.teams[t].boosterOwned !== null), true);
-eq("TEAM_4 quỹ 39 → giá sàn 5", g.teams.TEAM_4.currentEnergy, 44);
+// Thứ tự phân bổ do bốc thăm nên không cố định đội nào là món cuối:
+// kiểm theo tập hợp giá đã trả thay vì theo tên đội.
+const paidG = ["TEAM_2", "TEAM_4"].map(
+  (t) => g.auction.teams[t as TeamId].energySnapshot - g.teams[t as TeamId].currentEnergy,
+);
+eq("Một đội trả giá sàn 5, đội chốt sổ trả nửa quỹ", paidG.includes(5), true);
+eq("Đúng hai đội được phân bổ", paidG.length, 2);
 
 /* Reopen */
 const before = T.map((t) => g.teams[t].currentEnergy);
@@ -540,7 +546,11 @@ for (let i = 0; i < 3; i += 1) {
 eq("KHÔNG đội nào ra về tay trắng", T.every((t) => allin.teams[t].boosterOwned !== null), true);
 eq("Bốn Booster về bốn đội khác nhau", new Set(T.map((t) => allin.teams[t].boosterOwned)).size, 4);
 eq("Đấu giá kết thúc", allin.auction.phase, "DONE");
-eq("Đội nhận vét trả giá sàn 5", allin.teams[T.find((t) => t !== "TEAM_1")!].currentEnergy, allin.auction.teams[T.find((t) => t !== "TEAM_1")!].energySnapshot - 5);
+const paidAllin = T.filter((t) => t !== allin.auction.lots.ALPHA.winner)
+  .map((t) => allin.auction.teams[t].energySnapshot - allin.teams[t].currentEnergy)
+  .sort((a, b) => a - b);
+const halfFund = Math.floor(allin.auction.teams.TEAM_1.auctionFund / 2);
+eq("Hai đội giữa trả giá sàn, đội chốt sổ trả nửa quỹ", paidAllin, [5, 5, halfFund]);
 
 /* (2) Hai đội cùng trần quỹ, cùng all-in → bế tắc, GM bốc thăm */
 const tie2 = auctionReady([100, 100, 40, 40]);
@@ -682,6 +692,91 @@ eq("Delta hoàn min(54/2, 20) = 20", dlt.teams.TEAM_1.currentEnergy, 183 - 54 + 
 eq("Dùng rồi thì tiêu Booster", dlt.teams.TEAM_1.boosterUsed, true);
 eq("Đội giữ lại thì mất trọn Investment", dlt.teams.TEAM_2.currentEnergy, 183 - 54);
 eq("Và Booster còn nguyên", dlt.teams.TEAM_2.boosterUsed, false);
+
+
+
+/* --- Luật đấu giá mới --- */
+
+/* (a) Booster được đặt nhiều điểm nhất lên sàn trước */
+const ord = auctionReady([200, 200, 200, 200]);
+M.submitSealedBids(ord, gm, "TEAM_1", { ALPHA: 5, BETA: 40, GAMMA: 0, DELTA: 10 });
+M.submitSealedBids(ord, gm, "TEAM_2", { ALPHA: 0, BETA: 30, GAMMA: 20, DELTA: 0 });
+M.submitSealedBids(ord, gm, "TEAM_3", { ALPHA: 10, BETA: 0, GAMMA: 25, DELTA: 5 });
+M.submitSealedBids(ord, gm, "TEAM_4", { ALPHA: 0, BETA: 0, GAMMA: 5, DELTA: 3 });
+M.lockSealedAuction(ord, gm);
+
+eq("Tổng đặt vào BETA", M.getBoosterDemand(ord, "BETA"), 70);
+eq("Tổng đặt vào GAMMA", M.getBoosterDemand(ord, "GAMMA"), 50);
+eq("Tổng đặt vào DELTA", M.getBoosterDemand(ord, "DELTA"), 18);
+eq("Tổng đặt vào ALPHA", M.getBoosterDemand(ord, "ALPHA"), 15);
+
+M.orderAuctionLots(ord, gm);
+eq("Thứ tự lên sàn theo mức quan tâm giảm dần", ord.auction.order, ["BETA", "GAMMA", "DELTA", "ALPHA"]);
+eq("Vào thẳng vòng đấu", ord.auction.phase, "RUNNING");
+eq("Nhật ký ghi kèm tổng điểm", ord.auditLog.some((e) => e.action.includes("MỨC QUAN TÂM")), true);
+
+/* (b) Trao qua bốc thăm → trả đúng giá kín của chính đội thắng */
+const pay = auctionReady([200, 200, 200, 200]);
+M.submitSealedBids(pay, gm, "TEAM_1", { ALPHA: 60, BETA: 0, GAMMA: 0, DELTA: 0 });
+M.submitSealedBids(pay, gm, "TEAM_2", { ALPHA: 60, BETA: 0, GAMMA: 0, DELTA: 0 });
+M.submitSealedBids(pay, gm, "TEAM_3", { ALPHA: 0, BETA: 5, GAMMA: 0, DELTA: 0 });
+M.submitSealedBids(pay, gm, "TEAM_4", { ALPHA: 0, BETA: 0, GAMMA: 5, DELTA: 0 });
+M.lockSealedAuction(pay, gm);
+M.orderAuctionLots(pay, gm);
+eq("ALPHA nóng nhất nên lên trước", pay.auction.order[0], "ALPHA");
+eq("Hai đội bằng giá → chưa ai dẫn", pay.auction.lots.ALPHA.currentLeader, null);
+
+const snap2 = pay.auction.teams.TEAM_2.energySnapshot;
+M.awardLotRandom(pay, gm, "ALPHA");
+const won = pay.auction.lots.ALPHA.winner!;
+eq("Trả đúng giá kín của đội thắng", pay.auction.lots.ALPHA.winningPrice, pay.auction.teams[won].bids.ALPHA);
+if (won === "TEAM_2") eq("Trừ đúng số đó khỏi Energy", pay.teams.TEAM_2.currentEnergy, snap2 - 60);
+
+// Nếu đã có nâng giá công khai thì trả theo giá chốt, không quay về giá kín.
+const pub = auctionReady([200, 200, 200, 200]);
+M.submitSealedBids(pub, gm, "TEAM_1", { ALPHA: 50, BETA: 0, GAMMA: 0, DELTA: 0 });
+M.submitSealedBids(pub, gm, "TEAM_2", { ALPHA: 30, BETA: 0, GAMMA: 0, DELTA: 0 });
+M.submitSealedBids(pub, gm, "TEAM_3", { ALPHA: 0, BETA: 5, GAMMA: 0, DELTA: 0 });
+M.submitSealedBids(pub, gm, "TEAM_4", { ALPHA: 0, BETA: 0, GAMMA: 5, DELTA: 0 });
+M.lockSealedAuction(pub, gm);
+M.orderAuctionLots(pub, gm);
+M.placePublicBid(pub, gm, "ALPHA", "TEAM_2", 55);
+M.awardLot(pub, gm, "ALPHA");
+eq("Có nâng giá thì trả giá chốt 55", pub.auction.lots.ALPHA.winningPrice, 55);
+eq("Đội nâng giá là đội thắng", pub.auction.lots.ALPHA.winner, "TEAM_2");
+
+/* (c) Booster cuối cùng: nửa quỹ */
+const last = auctionReady([100, 100, 100, 100]);
+const lf = last.auction.teams.TEAM_1.auctionFund; // 80
+T.forEach((t) => M.submitSealedBids(last, gm, t, { ALPHA: 10, BETA: 0, GAMMA: 0, DELTA: 0 }));
+M.lockSealedAuction(last, gm);
+M.orderAuctionLots(last, gm);
+M.resolveTieRandom(last, gm, "ALPHA");
+M.awardLotRandom(last, gm, "ALPHA");
+eq("Ba Booster kia không ai đặt → xuống phân bổ", last.auction.phase, "FALLBACK");
+
+M.randomizeFallbackOrder(last, gm);
+const line = last.auction.fallbackOrder.filter((t) => !last.teams[t].boosterOwned);
+eq("Còn 3 đội chờ phân bổ", line.length, 3);
+
+// Hai món giữa vẫn theo giá sàn.
+eq("Món chưa phải cuối → giá sàn 5", M.getFallbackPrice(last, line[0], M.getUnassignedBoosters(last)[0]), 5);
+M.assignFallbackBooster(last, gm, line[0], M.getUnassignedBoosters(last)[0]);
+M.assignFallbackBooster(last, gm, line[1], M.getUnassignedBoosters(last)[0]);
+
+eq("Giờ chỉ còn một đội và một Booster", M.isLastBoosterLeft(last), true);
+const lastBooster = M.getUnassignedBoosters(last)[0];
+eq("Món cuối = nửa quỹ", M.getFallbackPrice(last, line[2], lastBooster), Math.floor(lf * 0.5));
+
+const before2 = last.teams[line[2]].currentEnergy;
+M.assignFallbackBooster(last, gm, line[2], lastBooster);
+eq("Trừ đúng nửa quỹ", last.teams[line[2]].currentEnergy, before2 - Math.floor(lf * 0.5));
+eq("Bốn đội đủ Booster", T.every((t) => last.teams[t].boosterOwned !== null), true);
+// Đội hết sạch Energy thì nhận Booster giá 0, kể cả khi là món cuối.
+const broke = auctionReady([100, 100, 100, 100]);
+broke.auction.teams.TEAM_4.auctionFund = 0;
+broke.auction.teams.TEAM_4.energySnapshot = 0;
+eq("Quỹ bằng 0 → giá 0", M.getFallbackPrice(broke, "TEAM_4", "ALPHA"), 0);
 
 console.log(`\n${pass} đạt / ${fail} lỗi`);
 process.exit(fail > 0 ? 1 : 0);

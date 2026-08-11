@@ -566,16 +566,33 @@ function shuffle<T>(items: T[]): T[] {
   return copy;
 }
 
-export function randomizeAuctionOrder(data: GameData, actor: Actor): void {
+/** Tổng số điểm cả 4 đội đặt vào một Booster — thước đo mức quan tâm. */
+export function getBoosterDemand(data: GameData, booster: BoosterId): number {
+  return TEAM_IDS.reduce(
+    (sum, teamId) => sum + data.auction.teams[teamId].bids[booster],
+    0,
+  );
+}
+
+/**
+ * Booster được đặt nhiều điểm nhất lên sàn trước — vòng đấu mở màn bằng
+ * món nóng nhất. Hòa tổng thì xáo trộn trước khi sắp, để thứ tự khai báo
+ * trong code không thành lợi thế ngầm.
+ */
+export function orderAuctionLots(data: GameData, actor: Actor): void {
   if (data.auction.phase !== "SEALED_LOCKED") {
-    fail("Chỉ bốc thứ tự sau khi đã khóa phiếu kín.");
+    fail("Chỉ xếp thứ tự sau khi đã khóa phiếu kín.");
   }
-  data.auction.order = shuffle(BOOSTER_IDS);
+  data.auction.order = shuffle(BOOSTER_IDS).sort(
+    (a, b) => getBoosterDemand(data, b) - getBoosterDemand(data, a),
+  );
   data.auction.currentLotIndex = 0;
   data.auction.phase = "RUNNING";
   addAudit(data, actor, {
-    action: "BỐC THỨ TỰ BOOSTER",
-    newValue: data.auction.order.join(" → "),
+    action: "XẾP THỨ TỰ BOOSTER THEO MỨC QUAN TÂM",
+    newValue: data.auction.order
+      .map((b) => `${b} (${getBoosterDemand(data, b)})`)
+      .join(" → "),
   });
   prepareCurrentLot(data);
 }
@@ -778,7 +795,12 @@ export function awardLot(
   if (!winner) fail("Chưa có đội dẫn giá — GM cần bốc thăm và chọn đội thắng.");
   if (!lot.candidates.includes(winner)) fail("Đội này không ở trong vòng đấu.");
 
-  const price = lot.currentBid;
+  // Chưa ai nâng giá công khai thì đội thắng trả đúng giá kín của mình,
+  // không phải mức giá chung của lô.
+  const price =
+    lot.currentLeader === null
+      ? data.auction.teams[winner].bids[booster]
+      : lot.currentBid;
   const team = data.teams[winner];
   const before = team.currentEnergy;
 
@@ -851,6 +873,13 @@ export function randomizeFallbackOrder(data: GameData, actor: Actor): void {
   });
 }
 
+export function isLastBoosterLeft(data: GameData): boolean {
+  return (
+    getUnassignedTeams(data).length === 1 &&
+    getUnassignedBoosters(data).length === 1
+  );
+}
+
 export function getFallbackPrice(
   data: GameData,
   teamId: TeamId,
@@ -858,6 +887,8 @@ export function getFallbackPrice(
 ): number {
   const fund = data.auction.teams[teamId].auctionFund;
   if (fund === 0) return 0;
+  // Món cuối cùng không còn ai tranh — đội còn lại mua với nửa quỹ.
+  if (isLastBoosterLeft(data)) return Math.floor(fund * 0.5);
   const sealed = data.auction.teams[teamId].bids[booster];
   return Math.min(fund, Math.max(sealed, FALLBACK_FLOOR_PRICE));
 }

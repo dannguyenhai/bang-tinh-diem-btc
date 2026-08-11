@@ -134,8 +134,8 @@ export function applyAction(
     case "lockSealedAuction":
       return M.lockSealedAuction(data, actor);
 
-    case "randomizeAuctionOrder":
-      return M.randomizeAuctionOrder(data, actor);
+    case "orderAuctionLots":
+      return M.orderAuctionLots(data, actor);
 
     case "resolveTie":
       return M.resolveTie(data, actor, action.booster, action.teamId);

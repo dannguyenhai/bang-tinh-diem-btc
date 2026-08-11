@@ -9,10 +9,12 @@ import {
   TEAM_IDS,
 } from "@/lib/config";
 import {
+  getBoosterDemand,
   getFallbackPrice,
   getMinNextBid,
   getUnassignedBoosters,
   getUnassignedTeams,
+  isLastBoosterLeft,
 } from "@/lib/mutations";
 import { getCurrentLotBooster, nextFallbackTeam } from "@/lib/selectors";
 import { useGameStore } from "@/lib/store";
@@ -270,16 +272,38 @@ function SealedMatrix({ showOrderButton = false }: { showOrderButton?: boolean }
               </tr>
             ))}
           </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-ink-600">
+              <td className="px-2 py-2 text-[10px] font-bold tracking-wider text-ink-400 uppercase">
+                Tổng đặt
+              </td>
+              {BOOSTER_IDS.map((booster) => (
+                <td
+                  key={booster}
+                  className="px-2 py-2 text-right text-base font-black text-neon"
+                >
+                  {getBoosterDemand(data, booster)}
+                </td>
+              ))}
+              <td />
+            </tr>
+          </tfoot>
         </table>
       </div>
+
+      {showOrderButton && (
+        <p className="mt-3 text-xs text-ink-400">
+          Booster được đặt nhiều điểm nhất sẽ lên sàn trước.
+        </p>
+      )}
 
       {showOrderButton && (
         <Button
           full
           className="mt-3"
-          onClick={() => dispatch({ type: "randomizeAuctionOrder" })}
+          onClick={() => dispatch({ type: "orderAuctionLots" })}
         >
-          Bốc thứ tự Booster & bắt đầu đấu công khai
+          Xếp thứ tự theo mức quan tâm & bắt đầu đấu công khai
         </Button>
       )}
     </Card>
@@ -500,6 +524,11 @@ function FallbackRound() {
           {turn ? (
             <div className="space-y-2">
               <Badge tone="brand">Đến lượt {data.teams[turn].name}</Badge>
+              {isLastBoosterLeft(data) && (
+                <p className="text-xs text-neon">
+                  Món cuối cùng — mua với nửa quỹ đấu giá của đội.
+                </p>
+              )}
               {boostersLeft.map((booster) => (
                 <Button
                   key={booster}
