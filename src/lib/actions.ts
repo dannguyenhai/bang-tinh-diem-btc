@@ -73,6 +73,7 @@ export type ActionType = GameAction["type"];
  * Mọi thứ khác chỉ Game Master mới chạy được.
  */
 export const CARE_TEAM_ACTIONS: ReadonlySet<ActionType> = new Set<ActionType>([
+  "setTeamProfile",
   "submitInvestment",
   "setReactiveBooster",
   "submitSealedBids",

@@ -9,7 +9,7 @@ Phân quyền được cưỡng chế ở **backend**, không phải chỉ ẩn 
 ```bash
 npm install
 npm run dev        # http://localhost:3000
-npm run verify     # 183 test: công thức tính điểm, vòng đời Booster, đấu giá, phân quyền, lọc dữ liệu
+npm run verify     # 193 test: công thức tính điểm, vòng đời Booster, đấu giá, phân quyền, lọc dữ liệu
 ```
 
 ## Thiết lập (làm một lần)
@@ -63,7 +63,7 @@ Thiếu `SUPABASE_SERVICE_ROLE_KEY` thì app không chạy được: mọi thao 
 
 ## Trình tự vận hành một buổi
 
-1. **GM → Đội**: đổi tên 4 đội, đổi PIN.
+1. **Đặt tên**: mỗi Care Team đăng nhập và tự nhập tên đội mình (chỉ được trước khi mở nguồn Energy). GM đổi tên và PIN bất cứ lúc nào ở tab **Đội & PIN**.
 2. **GM → Điều hành**: nhập Energy khởi đầu → *Công bố Energy khởi đầu*.
 3. **TT1, TT2**: mở vòng → Care Team gửi Investment → *Khóa Investment* → *Mở nhập kết quả* → WIN/LOSE từng đội → *Chuyển sang soát* → *Khóa kết quả* → *Publish Scoreboard*.
 4. **Đấu giá** (sau khi TT2 đã khóa): *Snapshot Energy & mở vòng kín* → 4 đội gửi phiếu → *Khóa phiếu* → *Xếp thứ tự theo mức quan tâm* → chạy từng lô → phân bổ phần còn lại.
@@ -106,7 +106,7 @@ Trình duyệt <────── JSON đã lọc ─────┘
 | `game_pulse` | anon chỉ đọc được đúng một con số `version` để nhận tín hiệu realtime |
 | Phiên đăng nhập | cookie `httpOnly` + `sameSite=lax`, ký HMAC-SHA256 bằng `SESSION_SECRET`; JS trên trang không đọc được |
 | PIN | scrypt + salt ngẫu nhiên; `pinHash` bị xóa trước khi JSON rời server, kể cả với GM |
-| Hành động | `CARE_TEAM_ACTIONS` — Care Team chỉ gửi được Investment, Booster Response, phiếu kín, nâng giá, chọn Booster phân bổ |
+| Hành động | `CARE_TEAM_ACTIONS` — Care Team chỉ gửi được tên đội, Investment, Booster Response, phiếu kín, nâng giá, chọn Booster phân bổ |
 | Dữ liệu trả về | Care Team không nhận được Energy nội bộ, Investment, giá kín, quỹ đấu giá của đội khác, và không nhận nhật ký |
 
 Sửa payload trong DevTools cũng không qua được: server không tin bất cứ thứ gì client gửi ngoài `type` và tham số, còn danh tính lấy từ cookie đã ký.
@@ -124,7 +124,7 @@ src/lib/server/dispatch.ts kiểm quyền rồi áp hành động
 src/lib/server/redact.ts   cắt dữ liệu theo vai trước khi trả về
 src/lib/server/gameStore.ts đọc/ghi Supabase bằng service_role
 src/app/api/*              login · logout · state · action
-scripts/verify.ts          183 test
+scripts/verify.ts          193 test
 ```
 
 Toàn bộ ván chơi là một dòng JSONB. Mỗi lần ghi kèm `version` cũ; nếu máy khác vừa ghi trước, server đọc lại bản mới và áp lại hành động (tối đa 5 lần) — GM và Care Team bấm cùng lúc không mất dữ liệu.

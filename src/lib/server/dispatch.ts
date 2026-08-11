@@ -51,6 +51,18 @@ export function applyAction(
       return M.openEnergy(data, actor, action.energies);
 
     case "setTeamProfile": {
+      if (session.role === "CARE_TEAM") {
+        // Đội tự đặt tên mình được, nhưng PIN là việc của Game Master.
+        if (action.pin !== undefined) {
+          throw new ForbiddenError("Chỉ Game Master mới đổi được PIN.");
+        }
+        // Tên đã lên màn LED rồi thì không cho sửa giữa buổi.
+        if (data.energyOpened) {
+          throw new ForbiddenError(
+            "Ván chơi đã bắt đầu — nhờ Game Master đổi tên giúp.",
+          );
+        }
+      }
       if (action.pin !== undefined && !/^\d{4,6}$/.test(action.pin)) {
         throw new M.GameError("PIN phải gồm 4–6 chữ số.");
       }

@@ -3,7 +3,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { AppShell, GuardMessage, LoadingScreen } from "@/components/AppShell";
 import { Breakdown } from "@/components/Breakdown";
-import { Badge, Button, Card, Empty, NumberField, Panel, Stat } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  Empty,
+  NumberField,
+  Panel,
+  Stat,
+  TextField,
+} from "@/components/ui";
 import {
   AUCTION_PHASE_LABEL,
   BOOSTER_IDS,
@@ -54,6 +63,8 @@ export default function TeamPage() {
         <Stat label="Đã công bố" value={team.publishedEnergy} tone="muted" />
       </div>
 
+      {!data.energyOpened && <TeamNameForm teamId={teamId} />}
+
       <BoosterCard teamId={teamId} />
 
       {isAuctionActive(data) && <AuctionSection teamId={teamId} />}
@@ -74,6 +85,64 @@ export default function TeamPage() {
 }
 
 /* ------------------------------------------------------------------ */
+
+/** Đội tự đặt tên trước giờ G. Sau khi GM mở nguồn Energy thì khóa lại. */
+function TeamNameForm({ teamId }: { teamId: TeamId }) {
+  const team = useGameStore((s) => s.data.teams[teamId]);
+  const dispatch = useGameStore((s) => s.dispatch);
+  const [name, setName] = useState(team.name);
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const trimmed = name.trim();
+  const dirty = trimmed !== team.name && trimmed.length > 0;
+
+  return (
+    <Card
+      title="Tên đội"
+      subtitle="Đặt tên trước khi Game Master mở nguồn Energy. Tên này lên màn LED."
+    >
+      <form
+        className="flex flex-col gap-2 sm:flex-row sm:items-end"
+        onSubmit={async (event) => {
+          event.preventDefault();
+          if (!dirty || saving) return;
+          setSaving(true);
+          const ok = await dispatch({
+            type: "setTeamProfile",
+            teamId,
+            name: trimmed,
+          });
+          setSaving(false);
+          if (ok) setSaved(true);
+        }}
+      >
+        <TextField
+          className="flex-1"
+          label="Tên hiển thị"
+          value={name}
+          maxLength={24}
+          placeholder="Ví dụ: BIỆT ĐỘI SẤM SÉT"
+          onChange={(e) => {
+            setName(e.target.value);
+            setSaved(false);
+          }}
+        />
+        <Button
+          type="submit"
+          variant={dirty ? "primary" : "subtle"}
+          disabled={!dirty || saving}
+          className="shrink-0"
+        >
+          {saving ? "Đang lưu…" : saved ? "Đã lưu" : "Lưu tên"}
+        </Button>
+      </form>
+      <p className="mt-2 text-xs text-ink-400">
+        Tối đa 24 ký tự. Khi ván chơi bắt đầu, muốn đổi phải nhờ Game Master.
+      </p>
+    </Card>
+  );
+}
 
 function BoosterCard({ teamId }: { teamId: TeamId }) {
   const team = useGameStore((s) => s.data.teams[teamId]);

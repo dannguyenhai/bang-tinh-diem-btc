@@ -778,5 +778,46 @@ broke.auction.teams.TEAM_4.auctionFund = 0;
 broke.auction.teams.TEAM_4.energySnapshot = 0;
 eq("Quỹ bằng 0 → giá 0", M.getFallbackPrice(broke, "TEAM_4", "ALPHA"), 0);
 
+
+
+/* --- Care Team tự đặt tên đội --- */
+const nm = createInitialGameData(100, () => "hash");
+const t1s = { role: "CARE_TEAM" as const, teamId: "TEAM_1" as TeamId, name: "TEAM ALPHA" };
+const t2s = { role: "CARE_TEAM" as const, teamId: "TEAM_2" as TeamId, name: "TEAM BETA" };
+
+applyAction(nm, { type: "setTeamProfile", teamId: "TEAM_1", name: "BIỆT ĐỘI SẤM SÉT" }, t1s);
+eq("Đội tự đặt được tên mình trước giờ G", nm.teams.TEAM_1.name, "BIỆT ĐỘI SẤM SÉT");
+eq("Ghi vào nhật ký kèm tên cũ", nm.auditLog[0].oldValue, "TEAM ALPHA");
+eq("Người thao tác là chính đội đó", nm.auditLog[0].role, "CARE_TEAM");
+
+refuses(
+  "Không đặt tên hộ đội khác",
+  () => applyAction(nm, { type: "setTeamProfile", teamId: "TEAM_1", name: "PHÁ HOẠI" }, t2s),
+  "quyền",
+);
+refuses(
+  "Không tự đổi PIN của mình",
+  () => applyAction(nm, { type: "setTeamProfile", teamId: "TEAM_1", pin: "0000" }, t1s),
+  "quyền",
+);
+refuses(
+  "Không để tên rỗng",
+  () => applyAction(nm, { type: "setTeamProfile", teamId: "TEAM_1", name: "   " }, t1s),
+  "luật",
+);
+eq("Tên vẫn nguyên sau các lần bị chặn", nm.teams.TEAM_1.name, "BIỆT ĐỘI SẤM SÉT");
+
+// Mở nguồn Energy là chốt sổ tên đội.
+M.openEnergy(nm, gm, { TEAM_1: 100, TEAM_2: 100, TEAM_3: 100, TEAM_4: 100 });
+refuses(
+  "Ván đã bắt đầu thì đội không tự đổi tên nữa",
+  () => applyAction(nm, { type: "setTeamProfile", teamId: "TEAM_1", name: "ĐỔI GIỮA CHỪNG" }, t1s),
+  "quyền",
+);
+applyAction(nm, { type: "setTeamProfile", teamId: "TEAM_1", name: "GM ĐỔI HỘ" }, gmSession);
+eq("Nhưng Game Master vẫn đổi được", nm.teams.TEAM_1.name, "GM ĐỔI HỘ");
+applyAction(nm, { type: "setTeamProfile", teamId: "TEAM_1", pin: "4321" }, gmSession);
+eq("Và Game Master vẫn đổi được PIN", verifyPin("4321", nm.teams.TEAM_1.pinHash), true);
+
 console.log(`\n${pass} đạt / ${fail} lỗi`);
 process.exit(fail > 0 ? 1 : 0);
