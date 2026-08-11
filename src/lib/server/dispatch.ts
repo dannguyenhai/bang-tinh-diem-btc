@@ -1,5 +1,5 @@
 import { CARE_TEAM_ACTIONS, actionTeamId, type GameAction } from "@/lib/actions";
-import { normalizeGameData } from "@/lib/initialState";
+import { createInitialGameData, normalizeGameData } from "@/lib/initialState";
 import { TEAM_IDS } from "@/lib/config";
 import * as M from "@/lib/mutations";
 import type { Actor, GameData, Session } from "@/lib/types";
@@ -171,6 +171,24 @@ export function applyAction(
 
     case "resetGame":
       return M.resetGame(data, actor, action.startEnergy);
+
+    case "factoryReset": {
+      if (!Number.isInteger(action.startEnergy) || action.startEnergy < 0) {
+        throw new M.GameError("Energy khởi đầu phải là số nguyên không âm.");
+      }
+      const fresh = createInitialGameData(action.startEnergy, hashPin);
+      data.gmPinHash = fresh.gmPinHash;
+      data.energyOpened = false;
+      data.teams = fresh.teams;
+      data.challenges = fresh.challenges;
+      data.auction = fresh.auction;
+      data.auditLog = [];
+      M.addAudit(data, actor, {
+        action: "KHÔI PHỤC TOÀN BỘ VỀ MẶC ĐỊNH",
+        newValue: `Energy khởi đầu ${action.startEnergy} · tên đội và PIN về mặc định`,
+      });
+      return;
+    }
 
     case "importState": {
       const incoming = normalizeGameData(action.data);

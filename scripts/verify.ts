@@ -4,6 +4,7 @@ import * as M from "../src/lib/mutations";
 import type { Actor, ChallengeId, TeamId } from "../src/lib/types";
 import { ForbiddenError, applyAction } from "../src/lib/server/dispatch";
 import { redactForSession } from "../src/lib/server/redact";
+import { verifyPin } from "../src/lib/server/crypto";
 
 let pass = 0;
 let fail = 0;
@@ -201,6 +202,11 @@ refuses(
   "quyền",
 );
 refuses(
+  "Care Team không khôi phục được về mặc định",
+  () => applyAction(g, { type: "factoryReset", startEnergy: 100 }, team1Session),
+  "quyền",
+);
+refuses(
   "Care Team không nhập hộ đội khác",
   () =>
     applyAction(
@@ -286,6 +292,29 @@ eq("Khách chỉ thấy điểm đã công bố", forPublic.teams.TEAM_1.publish
 eq("Khách không thấy Energy nội bộ", forPublic.teams.TEAM_1.currentEnergy, 0);
 eq("Khách không thấy Booster", forPublic.teams.TEAM_1.boosterOwned, null);
 eq("Khách không thấy diễn biến vòng", forPublic.challenges[4].entries.TEAM_1.investment, null);
+
+
+
+/* --- Khôi phục về mặc định --- */
+const beforeFactory = JSON.stringify(g.teams.TEAM_1);
+applyAction(g, { type: "setTeamProfile", teamId: "TEAM_1", name: "ĐỘI ĐỔI TÊN" }, gmSession);
+eq("Đổi được tên đội", g.teams.TEAM_1.name, "ĐỘI ĐỔI TÊN");
+
+const pinBefore = g.teams.TEAM_1.pinHash;
+applyAction(g, { type: "factoryReset", startEnergy: 120 }, gmSession);
+eq("Factory reset — tên đội về mặc định", g.teams.TEAM_1.name, "TEAM ALPHA");
+eq("Factory reset — Energy về giá trị mới", T.map((t) => g.teams[t].currentEnergy), [120, 120, 120, 120]);
+eq("Factory reset — LED cũng về theo", g.teams.TEAM_1.publishedEnergy, 120);
+eq("Factory reset — sinh PIN mới", g.teams.TEAM_1.pinHash !== pinBefore, true);
+eq("Factory reset — PIN mặc định dùng được", verifyPin("1111", g.teams.TEAM_1.pinHash), true);
+eq("Factory reset — PIN GM về mặc định", verifyPin("9999", g.gmPinHash), true);
+eq("Factory reset — xóa Booster", T.every((t) => g.teams[t].boosterOwned === null), true);
+eq("Factory reset — xóa đấu giá", g.auction.phase, "IDLE");
+eq("Factory reset — mọi vòng về IDLE", [1, 2, 3, 4, 5].map((id) => g.challenges[id as ChallengeId].status), ["IDLE", "IDLE", "IDLE", "IDLE", "IDLE"]);
+eq("Factory reset — đóng lại nguồn Energy", g.energyOpened, false);
+eq("Factory reset — nhật ký chỉ còn dòng ghi việc reset", g.auditLog.length, 1);
+eq("Factory reset — có ghi vào nhật ký", g.auditLog[0].action, "KHÔI PHỤC TOÀN BỘ VỀ MẶC ĐỊNH");
+eq("Factory reset — state thực sự đổi", JSON.stringify(g.teams.TEAM_1) !== beforeFactory, true);
 
 console.log(`\n${pass} đạt / ${fail} lỗi`);
 process.exit(fail > 0 ? 1 : 0);

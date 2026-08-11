@@ -60,6 +60,8 @@ export type GameAction =
   | { type: "assignFallbackBooster"; teamId: TeamId; booster: BoosterId }
   | { type: "closeAuction" }
   | { type: "resetGame"; startEnergy: number }
+  /** Xóa sạch mọi thứ, kể cả tên đội và PIN — về đúng trạng thái xuất xưởng. */
+  | { type: "factoryReset"; startEnergy: number }
   | { type: "importState"; data: GameData };
 
 export type ActionType = GameAction["type"];

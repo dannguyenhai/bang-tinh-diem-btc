@@ -16,6 +16,7 @@ export function TeamsAdmin() {
   const [gmPin, setGmPinValue] = useState("");
   const [startEnergy, setStartEnergy] = useState(String(DEFAULT_START_ENERGY));
   const [confirmReset, setConfirmReset] = useState(false);
+  const [confirmFactory, setConfirmFactory] = useState(false);
 
   function exportJson() {
     // State ở client đã không còn pinHash — file sao lưu vì thế không chứa PIN.
@@ -102,7 +103,7 @@ export function TeamsAdmin() {
 
       <Card
         title="Reset ván chơi"
-        subtitle="Xóa toàn bộ kết quả, Booster và nhật ký. PIN được giữ nguyên."
+        subtitle="Xóa toàn bộ kết quả, Booster và nhật ký. Tên đội và PIN được giữ nguyên."
       >
         <div className="flex items-end gap-2">
           <TextField
@@ -117,6 +118,7 @@ export function TeamsAdmin() {
             onClick={() => {
               if (!confirmReset) {
                 setConfirmReset(true);
+                setConfirmFactory(false);
                 return;
               }
               void dispatch({
@@ -129,6 +131,43 @@ export function TeamsAdmin() {
             {confirmReset ? "Bấm lần nữa để xóa" : "Reset"}
           </Button>
         </div>
+      </Card>
+
+      <Card
+        title="Khôi phục về mặc định"
+        subtitle="Như lúc mới cài: xóa hết dữ liệu, trả tên đội và PIN về gốc."
+      >
+        <ul className="mb-3 space-y-1 text-xs text-ink-400">
+          <li>· Tên đội về TEAM ALPHA / BETA / GAMMA / DELTA</li>
+          <li>· PIN về 1111 · 2222 · 3333 · 4444, Game Master 9999</li>
+          <li>· Xóa sạch kết quả 5 vòng, Booster, đấu giá và nhật ký</li>
+        </ul>
+        <Button
+          full
+          variant="danger"
+          onClick={() => {
+            if (!confirmFactory) {
+              setConfirmFactory(true);
+              setConfirmReset(false);
+              return;
+            }
+            void dispatch({
+              type: "factoryReset",
+              startEnergy: Number(startEnergy || 0),
+            });
+            setConfirmFactory(false);
+          }}
+        >
+          {confirmFactory
+            ? "Bấm lần nữa — sẽ mất cả PIN đã đổi"
+            : "Khôi phục toàn bộ về ban đầu"}
+        </Button>
+        {confirmFactory && (
+          <p className="mt-2 text-center text-xs text-lose">
+            Bạn vẫn ở lại phiên hiện tại, nhưng lần đăng nhập sau phải dùng PIN
+            mặc định.
+          </p>
+        )}
       </Card>
     </div>
   );
