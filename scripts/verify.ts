@@ -1,4 +1,4 @@
-import { canUseDelta, computeProjection, getMaxInvestment, getAuctionFund } from "../src/lib/engine";
+import { computeProjection, getMaxInvestment, getAuctionFund } from "../src/lib/engine";
 import { createInitialGameData } from "../src/lib/initialState";
 import * as M from "../src/lib/mutations";
 import type { Actor, ChallengeId, TeamId } from "../src/lib/types";
@@ -468,8 +468,9 @@ M.lockInvestment(d, gm, 4);
 M.startResultEntry(d, gm, 4);
 T.forEach((t) => M.setResult(d, gm, t, 4, "LOSE"));
 const deltaAsked = M.getBoosterResponseTeams(d, 4);
-eq("Delta mở khi 100-30=70 ≤ 80", deltaAsked.includes("TEAM_1"), true);
-eq("Delta khóa khi 300-30=270 > 80", deltaAsked.includes("TEAM_2"), false);
+eq("Đội Energy thấp thua → được hỏi Delta", deltaAsked.includes("TEAM_1"), true);
+eq("Đội Energy cao thua cũng được hỏi Delta", deltaAsked.includes("TEAM_2"), true);
+eq("Cả 4 đội thua đều được hỏi", deltaAsked.length, 4);
 M.openBoosterResponse(d, gm, 4);
 M.setReactiveBooster(d, gm, "TEAM_1", 4, true);
 M.closeBoosterResponse(d, gm, 4);
@@ -646,7 +647,7 @@ eq("LED vẫn không thấy giá kín", afterAuction.auction.teams.TEAM_2.bids.B
 
 
 
-/* --- Delta không mở khi Energy sau khi thua vượt 80 --- */
+/* --- Delta: thua là được quyền dùng, không còn ngưỡng Energy --- */
 const dlt = createInitialGameData(100, () => "hash");
 M.openEnergy(dlt, gm, { TEAM_1: 183, TEAM_2: 183, TEAM_3: 183, TEAM_4: 183 });
 for (const id of [1, 2, 3, 4] as ChallengeId[]) {
@@ -670,18 +671,17 @@ M.lockInvestment(dlt, gm, 5);
 M.startResultEntry(dlt, gm, 5);
 T.forEach((t) => M.setResult(dlt, gm, t, 5, "LOSE"));
 
-eq("Thua nhưng 183-54=129 > 80 → Delta không mở", M.getBoosterResponseTeams(dlt, 5).length, 0);
-let noOpen = "";
-try { M.openBoosterResponse(dlt, gm, 5); } catch (e) { noOpen = (e as Error).message; }
-eq("Vẫn mở được Booster Response (GM tự quyết)", noOpen, "");
+eq("Energy cao vẫn được hỏi Delta khi thua", M.getBoosterResponseTeams(dlt, 5).length, 4);
+
+M.openBoosterResponse(dlt, gm, 5);
+M.setReactiveBooster(dlt, gm, "TEAM_1", 5, true);
+M.setReactiveBooster(dlt, gm, "TEAM_2", 5, false);
 M.closeBoosterResponse(dlt, gm, 5);
 M.lockResult(dlt, gm, 5);
-eq("Mất trọn Investment vì Delta không kích hoạt", dlt.teams.TEAM_1.currentEnergy, 183 - 54);
-eq("Delta vẫn còn nguyên sau TT5", dlt.teams.TEAM_1.boosterUsed, false);
-
-// Cùng đội đó nhưng đầu tư đủ lớn để lọt ngưỡng thì Delta mở.
-eq("183 - 103 = 80 → vừa đúng ngưỡng, Delta mở", canUseDelta(183, 103), true);
-eq("183 - 102 = 81 → vượt ngưỡng, Delta khóa", canUseDelta(183, 102), false);
+eq("Delta hoàn min(54/2, 20) = 20", dlt.teams.TEAM_1.currentEnergy, 183 - 54 + 20);
+eq("Dùng rồi thì tiêu Booster", dlt.teams.TEAM_1.boosterUsed, true);
+eq("Đội giữ lại thì mất trọn Investment", dlt.teams.TEAM_2.currentEnergy, 183 - 54);
+eq("Và Booster còn nguyên", dlt.teams.TEAM_2.boosterUsed, false);
 
 console.log(`\n${pass} đạt / ${fail} lỗi`);
 process.exit(fail > 0 ? 1 : 0);

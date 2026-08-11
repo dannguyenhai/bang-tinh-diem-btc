@@ -109,8 +109,7 @@ export const BOOSTER_META: Record<
     name: "DELTA — RESCUE",
     tagline: "Chỉ dùng SAU khi thua",
     timing: "REACTIVE",
-    description:
-      "Điều kiện: Energy sau khi thua ≤ 80. Hoàn lại 50% Investment, tối đa 20 Energy.",
+    description: "Hoàn lại 50% Investment vừa mất, tối đa 20 Energy.",
   },
 };
 

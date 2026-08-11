@@ -7,7 +7,6 @@ import {
   TEAM_IDS,
 } from "./config";
 import {
-  canUseDelta,
   computeProjection,
   getAuctionFund,
   getMaxInvestment,
@@ -281,13 +280,7 @@ export function getBoosterResponseTeams(
     const entry = challenge.entries[teamId];
     if (entry.result !== "LOSE") return false;
     if (team.boosterUsed) return false;
-    if (team.boosterOwned !== "BETA" && team.boosterOwned !== "DELTA") {
-      return false;
-    }
-    if (team.boosterOwned === "DELTA") {
-      return canUseDelta(entry.energyBefore ?? 0, entry.investment ?? 0);
-    }
-    return true;
+    return team.boosterOwned === "BETA" || team.boosterOwned === "DELTA";
   });
 }
 

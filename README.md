@@ -9,7 +9,7 @@ Phân quyền được cưỡng chế ở **backend**, không phải chỉ ẩn 
 ```bash
 npm install
 npm run dev        # http://localhost:3000
-npm run verify     # 74 test: công thức tính điểm, luồng đấu giá, phân quyền, lọc dữ liệu
+npm run verify     # 162 test: công thức tính điểm, vòng đời Booster, đấu giá, phân quyền, lọc dữ liệu
 ```
 
 ## Thiết lập (làm một lần)
@@ -75,7 +75,7 @@ Thiếu `SUPABASE_SERVICE_ROLE_KEY` thì app không chạy được: mọi thao 
 - Trần đầu tư `max(1, floor(Energy × 30%))`; Energy = 0 thì chỉ nhập 0.
 - Reward: TT1 50 · TT2 60 · TT3 70 · TT4 90 · TT5 100. TT3 không đầu tư, thua giữ nguyên Energy.
 - Alpha `+min(reward, 40)` khi thắng, `-10` thêm khi thua (chặn sàn 0). Gamma `+floor(reward × 50%)`, thua không phạt thêm. Cả hai phải chốt trước giờ thi đấu và tính là đã dùng dù thắng hay thua.
-- Beta che tối đa 25 Energy Investment. Delta chỉ mở khi Energy sau khi thua ≤ 80, hoàn `min(floor(investment × 50%), 20)`.
+- Beta che tối đa 25 Energy Investment. Delta hoàn `min(floor(investment × 50%), 20)`. Cả hai chỉ cần đội thua là được quyền dùng — không có thêm điều kiện nào.
 - Quỹ đấu giá `floor(Energy sau TT2 × 80%)`. Giá kín không bị trừ Energy — chỉ đội thắng mới trả.
 - Vòng công khai: top 2 giá kín > 0 trong nhóm chưa có Booster, bước giá `+5`, trần bằng quỹ. Hòa thì GM bốc thăm và ghi vào nhật ký.
 - Không ai đặt giá → lô `SKIPPED`, xuống vòng phân bổ với giá `min(quỹ, max(giá kín, 5))`; quỹ = 0 thì nhận giá 0.
@@ -123,7 +123,7 @@ src/lib/server/dispatch.ts kiểm quyền rồi áp hành động
 src/lib/server/redact.ts   cắt dữ liệu theo vai trước khi trả về
 src/lib/server/gameStore.ts đọc/ghi Supabase bằng service_role
 src/app/api/*              login · logout · state · action
-scripts/verify.ts          74 test
+scripts/verify.ts          162 test
 ```
 
 Toàn bộ ván chơi là một dòng JSONB. Mỗi lần ghi kèm `version` cũ; nếu máy khác vừa ghi trước, server đọc lại bản mới và áp lại hành động (tối đa 5 lần) — GM và Care Team bấm cùng lúc không mất dữ liệu.

@@ -57,14 +57,6 @@ export function getDeltaRefund(investment: number): number {
   return Math.min(Math.floor(investment * 0.5), 20);
 }
 
-/**
- * Delta chỉ mở khi Energy còn lại sau khi trừ Investment không quá 80.
- * Điều kiện luôn phải kiểm tra TRƯỚC khi cộng refund.
- */
-export function canUseDelta(currentEnergy: number, investment: number): boolean {
-  return currentEnergy - investment <= 80;
-}
-
 export interface ProjectionInput {
   challengeId: ChallengeId;
   energyBefore: number;
