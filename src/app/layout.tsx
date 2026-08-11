@@ -31,8 +31,13 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="vi">
-      <body className={`${sans.variable} ${geistMono.variable} antialiased`}>
+    // Extension trình duyệt (Grammarly, Dark Reader…) chèn thuộc tính vào
+    // html/body trước khi React hydrate — bỏ qua cảnh báo lệch do chúng gây ra.
+    <html lang="vi" suppressHydrationWarning>
+      <body
+        suppressHydrationWarning
+        className={`${sans.variable} ${geistMono.variable} antialiased`}
+      >
         <SyncBoot />
         {children}
       </body>

@@ -130,7 +130,7 @@ function SealedRound() {
       title="Vòng 1 — Đấu giá kín"
       subtitle="Care Team tự gửi phiếu trên máy của đội, GM có thể nhập hộ."
     >
-      <div className="space-y-2.5">
+      <div className="grid gap-2.5 lg:grid-cols-2">
         {TEAM_IDS.map((id) => (
           <SealedRow key={id} teamId={id} />
         ))}
@@ -186,7 +186,7 @@ function SealedRow({ teamId }: { teamId: TeamId }) {
         </p>
       ) : (
         <div className="mt-2.5">
-          <div className="grid grid-cols-4 gap-1.5">
+          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
             {BOOSTER_IDS.map((id) => (
               <NumberField
                 key={id}
@@ -335,7 +335,7 @@ function PublicRound() {
             />
           </div>
 
-          <div className="mt-3 space-y-2.5">
+          <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
             {lot.candidates.map((teamId) => (
               <div
                 key={teamId}
@@ -389,7 +389,7 @@ function PublicRound() {
             ))}
           </div>
 
-          <div className="mt-3 space-y-2">
+          <div className="mt-3 space-y-2 lg:mx-auto lg:max-w-xl">
             {lot.currentLeader ? (
               <Button
                 full

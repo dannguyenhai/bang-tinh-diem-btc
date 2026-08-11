@@ -26,7 +26,7 @@ export function ChallengeControl() {
       {!data.energyOpened && <OpenEnergyForm />}
 
       <Card title="Tiến trình gameshow">
-        <div className="grid grid-cols-5 gap-1.5">
+        <div className="grid grid-cols-5 gap-1.5 sm:gap-2.5">
           {CHALLENGE_IDS.map((id) => {
             const status = data.challenges[id].status;
             const tone =
@@ -38,12 +38,12 @@ export function ChallengeControl() {
             return (
               <div
                 key={id}
-                className={`rounded-xl border px-2 py-2.5 text-center ${tone}`}
+                className={`rounded-xl border px-1.5 py-2.5 text-center transition-colors duration-200 ease-out sm:px-3 sm:py-3 ${tone}`}
               >
-                <div className="text-sm font-black">
+                <div className="text-sm font-black sm:text-base">
                   {CHALLENGES[id].shortName}
                 </div>
-                <div className="mt-0.5 text-[9px] leading-tight font-bold uppercase">
+                <div className="mt-0.5 text-[9px] leading-tight font-bold uppercase sm:text-[10px]">
                   {CHALLENGE_STATUS_LABEL[status]}
                 </div>
               </div>
@@ -150,13 +150,18 @@ function ChallengeDetail({ challengeId }: { challengeId: ChallengeId }) {
       subtitle={`${config.participantType} · Reward ${config.baseReward}`}
       right={<Badge tone="brand">{CHALLENGE_STATUS_LABEL[status]}</Badge>}
     >
-      <div className="space-y-2.5">
-        {TEAM_IDS.map((teamId) => (
-          <TeamRow key={teamId} teamId={teamId} challengeId={challengeId} />
+      <div className="grid gap-2.5 lg:grid-cols-2">
+        {TEAM_IDS.map((teamId, index) => (
+          <TeamRow
+            key={teamId}
+            teamId={teamId}
+            challengeId={challengeId}
+            index={index}
+          />
         ))}
       </div>
 
-      <div className="mt-4 space-y-2">
+      <div className="mt-4 space-y-2 lg:mx-auto lg:max-w-xl">
         {status === "OPEN_FOR_INVESTMENT" && (
           <Button
             full
@@ -256,9 +261,11 @@ function ChallengeDetail({ challengeId }: { challengeId: ChallengeId }) {
 function TeamRow({
   teamId,
   challengeId,
+  index = 0,
 }: {
   teamId: TeamId;
   challengeId: ChallengeId;
+  index?: number;
 }) {
   const data = useGameStore((s) => s.data);
   const dispatch = useGameStore((s) => s.dispatch);
@@ -275,8 +282,13 @@ function TeamRow({
 
   return (
     <div
-      className="rounded-xl border border-ink-700 bg-ink-800/40 p-3"
-      style={{ borderLeft: `3px solid ${team.color}` }}
+      className="enter rounded-xl border border-ink-700 bg-ink-800/40 p-3"
+      style={
+        {
+          borderLeft: `3px solid ${team.color}`,
+          "--stagger": index,
+        } as React.CSSProperties
+      }
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>

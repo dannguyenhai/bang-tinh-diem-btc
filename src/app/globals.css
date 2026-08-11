@@ -17,6 +17,10 @@
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Easing mặc định của trình duyệt quá yếu — dùng bộ này cho toàn app. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 html,
@@ -46,6 +50,72 @@ input[type="number"] {
   appearance: textfield;
 }
 
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------ */
+/* Chuyển động                                                         */
+/* ------------------------------------------------------------------ */
+
+/*
+ * Panel xuất hiện khi GM chuyển giai đoạn — mục đích: bắc cầu cho nội dung
+ * vốn sẽ nhảy cóc. CSS animation (chạy ngoài main thread) thay vì JS, vì
+ * đây là chuyển động định sẵn và trang có thể đang bận gọi API.
+ */
+@keyframes enter-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.enter {
+  animation: enter-rise 220ms var(--ease-out) both;
+  animation-delay: calc(var(--stagger, 0) * 45ms);
+}
+
+/*
+ * Banner lỗi có thể bắn liên tiếp (bấm sai luật vài lần trong một giây).
+ * Dùng transition + @starting-style chứ không dùng keyframes: transition
+ * bám theo giá trị hiện tại, keyframes thì giật về mốc 0 mỗi lần kích hoạt.
+ */
+.enter-banner {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 200ms var(--ease-out),
+    transform 200ms var(--ease-out);
+}
+
+@starting-style {
+  .enter-banner {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+/* Con số Energy đổi khi GM khóa kết quả — báo hiệu trạng thái đã đổi. */
+@keyframes value-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.value-pop {
+  animation: value-pop 260ms var(--ease-out);
+}
+
 @keyframes pulse-ring {
   0% {
     box-shadow: 0 0 0 0 rgba(245, 197, 66, 0.45);
@@ -62,6 +132,36 @@ input[type="number"] {
   animation: pulse-ring 2s infinite;
 }
 
-.tabular {
-  font-variant-numeric: tabular-nums;
+/*
+ * Ít và nhẹ hơn, không phải bằng không: giữ fade để người dùng vẫn thấy
+ * nội dung mới xuất hiện, bỏ toàn bộ dịch chuyển và phóng to.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .enter {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .enter-banner {
+    transform: none;
+    transition: opacity 150ms var(--ease-out);
+  }
+
+  @starting-style {
+    .enter-banner {
+      transform: none;
+    }
+  }
+
+  .value-pop,
+  .pulse-ring {
+    animation: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
 }

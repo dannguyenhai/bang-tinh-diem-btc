@@ -33,7 +33,10 @@ export function Button({
     <button
       {...props}
       className={[
-        "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold tracking-wide uppercase transition-colors",
+        "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold tracking-wide uppercase",
+        // Phản hồi khi bấm: 120ms, chỉ transform + màu, không dùng `transition: all`.
+        "transition-[transform,background-color,border-color,color] duration-120 ease-out",
+        "active:scale-[0.97] disabled:active:scale-100",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
         "disabled:cursor-not-allowed",
         VARIANTS[variant],
@@ -51,28 +54,30 @@ export function Card({
   right,
   children,
   className = "",
+  stagger,
 }: {
   title?: ReactNode;
   subtitle?: ReactNode;
   right?: ReactNode;
   children: ReactNode;
   className?: string;
+  /** Thứ tự trong nhóm — tạo độ trễ 45ms mỗi bậc khi cả nhóm cùng xuất hiện. */
+  stagger?: number;
 }) {
   return (
     <section
-      className={`rounded-2xl border border-ink-700 bg-ink-900/80 p-4 shadow-lg shadow-black/30 backdrop-blur ${className}`}
+      style={stagger ? ({ "--stagger": stagger } as React.CSSProperties) : undefined}
+      className={`enter rounded-2xl border border-ink-700 bg-ink-900/80 p-4 shadow-lg shadow-black/30 backdrop-blur sm:p-5 ${className}`}
     >
       {(title || right) && (
         <header className="mb-3 flex items-start justify-between gap-3">
-          <div>
+          <div className="min-w-0">
             {title && (
               <h2 className="text-sm font-bold tracking-[0.14em] text-ink-200 uppercase">
                 {title}
               </h2>
             )}
-            {subtitle && (
-              <p className="mt-1 text-xs text-ink-400">{subtitle}</p>
-            )}
+            {subtitle && <p className="mt-1 text-xs text-ink-400">{subtitle}</p>}
           </div>
           {right}
         </header>
@@ -98,7 +103,7 @@ export function Badge({
   };
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase ${tones[tone]}`}
+      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-bold tracking-wider whitespace-nowrap uppercase transition-colors duration-150 ease-out ${tones[tone]}`}
     >
       {children}
     </span>
@@ -121,7 +126,7 @@ export function NumberField({
       <input
         {...props}
         inputMode="numeric"
-        className="tabular w-full rounded-xl border border-ink-600 bg-ink-950/80 px-4 py-3 text-2xl font-bold text-white outline-none focus:border-brand disabled:opacity-50"
+        className="tabular w-full rounded-xl border border-ink-600 bg-ink-950/80 px-4 py-3 text-2xl font-bold text-white outline-none transition-colors duration-150 ease-out focus:border-brand disabled:opacity-50"
       />
       {hint && <span className="mt-1.5 block text-xs text-ink-400">{hint}</span>}
     </label>
@@ -142,7 +147,7 @@ export function TextField({
       )}
       <input
         {...props}
-        className="w-full rounded-xl border border-ink-600 bg-ink-950/80 px-3 py-2.5 text-base text-white outline-none focus:border-brand disabled:opacity-50"
+        className="w-full rounded-xl border border-ink-600 bg-ink-950/80 px-3 py-2.5 text-base text-white outline-none transition-colors duration-150 ease-out focus:border-brand disabled:opacity-50"
       />
     </label>
   );
@@ -158,7 +163,11 @@ export function Stat({
   tone?: "default" | "brand" | "muted";
 }) {
   const valueTone =
-    tone === "brand" ? "text-brand" : tone === "muted" ? "text-ink-200" : "text-white";
+    tone === "brand"
+      ? "text-brand"
+      : tone === "muted"
+        ? "text-ink-200"
+        : "text-white";
   return (
     <div className="rounded-xl border border-ink-700 bg-ink-800/50 px-3 py-2.5">
       <div className="text-[10px] font-bold tracking-[0.14em] text-ink-400 uppercase">

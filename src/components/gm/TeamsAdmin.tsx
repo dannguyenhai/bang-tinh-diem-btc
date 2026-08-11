@@ -33,44 +33,52 @@ export function TeamsAdmin() {
 
   return (
     <div className="space-y-4">
-      <Card title="Đội chơi" subtitle="Đổi tên hiển thị và PIN đăng nhập.">
-        <div className="space-y-3">
-          {TEAM_IDS.map((id) => (
-            <TeamProfileRow key={id} teamId={id} />
+      <Card
+        title="Đổi tên đội & PIN"
+        subtitle="Tên sửa ở đây sẽ đổi luôn trên màn LED, màn Care Team và nhật ký."
+      >
+        <div className="grid gap-3 xl:grid-cols-2">
+          {TEAM_IDS.map((id, index) => (
+            <TeamProfileRow key={id} teamId={id} index={index} />
           ))}
         </div>
       </Card>
 
-      <Card
-        title="PIN Game Master"
-        subtitle="Để trống nghĩa là giữ nguyên PIN cũ."
-      >
-        <div className="flex items-end gap-2">
-          <TextField
-            className="flex-1"
-            label="PIN mới (4–6 chữ số)"
-            value={gmPin}
-            inputMode="numeric"
-            placeholder="••••"
-            onChange={(e) => setGmPinValue(e.target.value.replace(/\D/g, ""))}
-          />
-          <Button
-            variant="subtle"
-            disabled={gmPin.length < 4}
-            onClick={async () => {
-              const ok = await dispatch({ type: "setGmPin", pin: gmPin });
-              if (ok) setGmPinValue("");
-            }}
-          >
-            Lưu
-          </Button>
-        </div>
-      </Card>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card
+          title="PIN Game Master"
+          subtitle="Để trống nghĩa là giữ nguyên PIN cũ."
+          stagger={1}
+        >
+          <div className="flex items-end gap-2">
+            <TextField
+              className="flex-1"
+              label="PIN mới (4–6 chữ số)"
+              value={gmPin}
+              inputMode="numeric"
+              maxLength={6}
+              placeholder="••••"
+              onChange={(e) => setGmPinValue(e.target.value.replace(/\D/g, ""))}
+            />
+            <Button
+              variant={gmPin.length >= 4 ? "primary" : "subtle"}
+              disabled={gmPin.length < 4}
+              className="shrink-0"
+              onClick={async () => {
+                const ok = await dispatch({ type: "setGmPin", pin: gmPin });
+                if (ok) setGmPinValue("");
+              }}
+            >
+              Lưu
+            </Button>
+          </div>
+        </Card>
 
-      <Card
-        title="Sao lưu dữ liệu"
-        subtitle="Tải file JSON trước mỗi vòng để phòng sự cố. File không chứa PIN."
-      >
+        <Card
+          title="Sao lưu dữ liệu"
+          subtitle="Tải file JSON trước mỗi vòng để phòng sự cố. File không chứa PIN."
+          stagger={2}
+        >
         <div className="grid gap-2 sm:grid-cols-2">
           <Button variant="ghost" onClick={exportJson}>
             Xuất file JSON
@@ -99,13 +107,14 @@ export function TeamsAdmin() {
             }
           }}
         />
-      </Card>
+        </Card>
 
-      <Card
-        title="Reset ván chơi"
-        subtitle="Xóa toàn bộ kết quả, Booster và nhật ký. Tên đội và PIN được giữ nguyên."
-      >
-        <div className="flex items-end gap-2">
+        <Card
+          title="Reset ván chơi"
+          subtitle="Xóa toàn bộ kết quả, Booster và nhật ký. Tên đội và PIN được giữ nguyên."
+          stagger={3}
+        >
+          <div className="flex items-end gap-2">
           <TextField
             className="flex-1"
             label="Energy khởi đầu"
@@ -128,15 +137,16 @@ export function TeamsAdmin() {
               setConfirmReset(false);
             }}
           >
-            {confirmReset ? "Bấm lần nữa để xóa" : "Reset"}
-          </Button>
-        </div>
-      </Card>
+              {confirmReset ? "Bấm lần nữa để xóa" : "Reset"}
+            </Button>
+          </div>
+        </Card>
 
-      <Card
-        title="Khôi phục về mặc định"
-        subtitle="Như lúc mới cài: xóa hết dữ liệu, trả tên đội và PIN về gốc."
-      >
+        <Card
+          title="Khôi phục về mặc định"
+          subtitle="Như lúc mới cài: xóa hết dữ liệu, trả tên đội và PIN về gốc."
+          stagger={4}
+        >
         <ul className="mb-3 space-y-1 text-xs text-ink-400">
           <li>· Tên đội về TEAM ALPHA / BETA / GAMMA / DELTA</li>
           <li>· PIN về 1111 · 2222 · 3333 · 4444, Game Master 9999</li>
@@ -162,27 +172,41 @@ export function TeamsAdmin() {
             ? "Bấm lần nữa — sẽ mất cả PIN đã đổi"
             : "Khôi phục toàn bộ về ban đầu"}
         </Button>
-        {confirmFactory && (
-          <p className="mt-2 text-center text-xs text-lose">
-            Bạn vẫn ở lại phiên hiện tại, nhưng lần đăng nhập sau phải dùng PIN
-            mặc định.
-          </p>
-        )}
-      </Card>
+          {confirmFactory && (
+            <p className="mt-2 text-center text-xs text-lose">
+              Bạn vẫn ở lại phiên hiện tại, nhưng lần đăng nhập sau phải dùng
+              PIN mặc định.
+            </p>
+          )}
+        </Card>
+      </div>
     </div>
   );
 }
 
-function TeamProfileRow({ teamId }: { teamId: TeamId }) {
+function TeamProfileRow({
+  teamId,
+  index = 0,
+}: {
+  teamId: TeamId;
+  index?: number;
+}) {
   const team = useGameStore((s) => s.data.teams[teamId]);
   const dispatch = useGameStore((s) => s.dispatch);
   const [name, setName] = useState(team.name);
   const [pin, setPin] = useState("");
+  const [saved, setSaved] = useState(false);
+  const dirty = name.trim() !== team.name || pin.length >= 4;
 
   return (
     <div
-      className="rounded-xl border border-ink-700 bg-ink-800/40 p-3"
-      style={{ borderLeft: `3px solid ${team.color}` }}
+      className="enter rounded-xl border border-ink-700 bg-ink-800/40 p-3"
+      style={
+        {
+          borderLeft: `3px solid ${team.color}`,
+          "--stagger": index,
+        } as React.CSSProperties
+      }
     >
       <div className="mb-2.5 flex items-center justify-between">
         <p className="text-sm font-black text-white">{team.name}</p>
@@ -201,35 +225,50 @@ function TeamProfileRow({ teamId }: { teamId: TeamId }) {
         <Stat label="LED" value={team.publishedEnergy} tone="muted" />
       </div>
 
-      <div className="flex items-end gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
         <TextField
           className="flex-1"
           label="Tên đội"
           value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <TextField
-          className="w-28"
-          label="PIN mới"
-          value={pin}
-          inputMode="numeric"
-          placeholder="giữ nguyên"
-          onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
-        />
-        <Button
-          variant="subtle"
-          onClick={async () => {
-            const ok = await dispatch({
-              type: "setTeamProfile",
-              teamId,
-              name,
-              pin: pin.length >= 4 ? pin : undefined,
-            });
-            if (ok) setPin("");
+          maxLength={24}
+          onChange={(e) => {
+            setName(e.target.value);
+            setSaved(false);
           }}
-        >
-          Lưu
-        </Button>
+        />
+        <div className="flex items-end gap-2">
+          <TextField
+            className="w-28 shrink-0"
+            label="PIN mới"
+            value={pin}
+            inputMode="numeric"
+            maxLength={6}
+            placeholder="giữ nguyên"
+            onChange={(e) => {
+              setPin(e.target.value.replace(/\D/g, ""));
+              setSaved(false);
+            }}
+          />
+          <Button
+            variant={dirty ? "primary" : "subtle"}
+            disabled={!dirty}
+            className="shrink-0"
+            onClick={async () => {
+              const ok = await dispatch({
+                type: "setTeamProfile",
+                teamId,
+                name,
+                pin: pin.length >= 4 ? pin : undefined,
+              });
+              if (ok) {
+                setPin("");
+                setSaved(true);
+              }
+            }}
+          >
+            {saved ? "Đã lưu" : "Lưu"}
+          </Button>
+        </div>
       </div>
     </div>
   );

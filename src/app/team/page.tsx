@@ -514,7 +514,7 @@ function SealedBidForm({ teamId }: { teamId: TeamId }) {
         Quỹ = 80% Energy sau TT2. Tổng 4 giá không vượt quỹ; không cần dùng hết.
       </p>
 
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         {BOOSTER_IDS.map((id) => (
           <NumberField
             key={id}

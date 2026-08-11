@@ -15,7 +15,7 @@ import { useGameStore } from "@/lib/store";
 const TABS = [
   { id: "challenge", label: "Điều hành" },
   { id: "auction", label: "Đấu giá" },
-  { id: "teams", label: "Đội" },
+  { id: "teams", label: "Đội & PIN" },
   { id: "audit", label: "Nhật ký" },
 ] as const;
 
@@ -46,7 +46,7 @@ export default function GmPage() {
           <button
             key={item.id}
             onClick={() => setTab(item.id)}
-            className={`shrink-0 rounded-xl px-4 py-2.5 text-xs font-bold tracking-wider uppercase transition-colors ${
+            className={`shrink-0 rounded-xl px-4 py-2.5 text-xs font-bold tracking-wider uppercase transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-[0.97] sm:px-5 sm:text-sm ${
               tab === item.id
                 ? "bg-brand text-ink-950"
                 : "border border-ink-700 bg-ink-900 text-ink-200 hover:border-brand"
@@ -95,10 +95,14 @@ function ScoreStrip() {
               className="rounded-xl border border-ink-700 bg-ink-800/50 p-2.5"
               style={{ borderLeft: `3px solid ${team.color}` }}
             >
-              <p className="truncate text-[11px] font-bold text-ink-200">
+              <p className="truncate text-[11px] font-bold text-ink-200 sm:text-xs">
                 {team.name}
               </p>
-              <p className="tabular text-2xl font-black text-white">
+              {/* key đổi theo giá trị → nhịp phóng nhẹ báo Energy vừa được chốt */}
+              <p
+                key={team.currentEnergy}
+                className="value-pop tabular text-2xl font-black text-white sm:text-3xl"
+              >
                 {team.currentEnergy}
               </p>
               <p className="tabular text-[11px] text-ink-400">
@@ -116,19 +120,22 @@ function ScoreStrip() {
         })}
       </div>
 
-      <div className="mt-3 flex items-center gap-2">
+      <div className="mt-3 flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
         <Button
           full
+          className="sm:max-w-xs"
           disabled={!pending}
           onClick={() => dispatch({ type: "publishScoreboard" })}
         >
           Publish Scoreboard
         </Button>
-        {pending ? (
-          <Badge tone="brand">Có thay đổi chưa công bố</Badge>
-        ) : (
-          <Badge tone="win">LED đang khớp</Badge>
-        )}
+        <div className="flex justify-center sm:justify-start">
+          {pending ? (
+            <Badge tone="brand">Có thay đổi chưa công bố</Badge>
+          ) : (
+            <Badge tone="win">LED đang khớp</Badge>
+          )}
+        </div>
       </div>
     </section>
   );

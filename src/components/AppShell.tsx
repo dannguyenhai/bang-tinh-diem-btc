@@ -18,9 +18,11 @@ export function SyncPill() {
   const status = useGameStore((s) => s.status);
   const meta = STATUS_META[status];
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-ink-700 bg-ink-900 px-2.5 py-1 text-[10px] font-bold tracking-wider text-ink-200 uppercase">
-      <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
-      {meta.label}
+    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-ink-700 bg-ink-900 px-2.5 py-1 text-[10px] font-bold tracking-wider text-ink-200 uppercase">
+      <span
+        className={`h-1.5 w-1.5 rounded-full transition-colors duration-200 ease-out ${meta.dot}`}
+      />
+      <span className="hidden sm:inline">{meta.label}</span>
     </span>
   );
 }
@@ -30,12 +32,15 @@ export function ErrorBanner() {
   const clearError = useGameStore((s) => s.clearError);
   if (!error) return null;
   return (
-    <div className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-lg rounded-xl border border-lose/60 bg-[#2a1013] px-4 py-3 shadow-xl">
+    <div
+      role="alert"
+      className="enter-banner fixed inset-x-3 bottom-3 z-50 mx-auto max-w-lg rounded-xl border border-lose/60 bg-[#2a1013] px-4 py-3 shadow-xl"
+    >
       <div className="flex items-start gap-3">
         <p className="flex-1 text-sm text-lose">{error}</p>
         <button
           onClick={clearError}
-          className="text-xs font-bold text-ink-200 uppercase hover:text-white"
+          className="text-xs font-bold text-ink-200 uppercase transition-colors duration-150 hover:text-white"
         >
           Đóng
         </button>
@@ -60,16 +65,17 @@ export function AppShell({
   const session = useGameStore((s) => s.session);
   const logout = useGameStore((s) => s.logout);
   const router = useRouter();
+  const width = wide ? "max-w-7xl" : "max-w-2xl";
 
   return (
     <div className="min-h-dvh pb-24">
       <header className="sticky top-0 z-40 border-b border-ink-800 bg-ink-950/85 backdrop-blur">
         <div
-          className={`mx-auto flex items-center gap-3 px-4 py-3 ${wide ? "max-w-6xl" : "max-w-2xl"}`}
+          className={`mx-auto flex items-center gap-3 px-4 py-3 sm:px-6 lg:px-8 ${width}`}
         >
           <div className="min-w-0 flex-1">
             <h1
-              className="truncate text-base font-black tracking-wide"
+              className="truncate text-base font-black tracking-wide sm:text-lg"
               style={accent ? { color: accent } : undefined}
             >
               {title}
@@ -85,7 +91,7 @@ export function AppShell({
                 await logout();
                 router.push("/");
               }}
-              className="rounded-lg border border-ink-700 px-2.5 py-1.5 text-[10px] font-bold text-ink-200 uppercase hover:border-lose hover:text-lose"
+              className="shrink-0 rounded-lg border border-ink-700 px-2.5 py-1.5 text-[10px] font-bold text-ink-200 uppercase transition-colors duration-150 ease-out hover:border-lose hover:text-lose"
             >
               Thoát
             </button>
@@ -94,7 +100,7 @@ export function AppShell({
       </header>
 
       <main
-        className={`mx-auto space-y-4 px-4 py-4 ${wide ? "max-w-6xl" : "max-w-2xl"}`}
+        className={`mx-auto space-y-4 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 ${width}`}
       >
         {children}
       </main>
@@ -128,7 +134,7 @@ export function GuardMessage({
       {children}
       <Link
         href="/"
-        className="rounded-xl bg-brand px-5 py-3 text-sm font-bold text-ink-950 uppercase"
+        className="rounded-xl bg-brand px-5 py-3 text-sm font-bold text-ink-950 uppercase transition-transform duration-120 ease-out active:scale-[0.97]"
       >
         Về màn đăng nhập
       </Link>
