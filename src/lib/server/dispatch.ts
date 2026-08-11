@@ -140,6 +140,12 @@ export function applyAction(
     case "resolveTie":
       return M.resolveTie(data, actor, action.booster, action.teamId);
 
+    case "resolveTieRandom":
+      return M.resolveTieRandom(data, actor, action.booster);
+
+    case "awardLotRandom":
+      return M.awardLotRandom(data, actor, action.booster);
+
     case "placePublicBid":
       return M.placePublicBid(
         data,

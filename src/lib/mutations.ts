@@ -690,6 +690,57 @@ export function resolveTie(
   }
 }
 
+/** Hệ thống tự bốc thăm chọn đủ số suất còn lại trong nhóm hòa giá kín. */
+export function resolveTieRandom(
+  data: GameData,
+  actor: Actor,
+  booster: BoosterId,
+): void {
+  const lot = data.auction.lots[booster];
+  if (lot.status !== "TIE_BREAK") fail("Lô này không ở trạng thái xử lý hòa.");
+
+  const picked = shuffle(lot.tieCandidates).slice(0, lot.tieSlots);
+  for (const teamId of picked) lot.candidates.push(teamId);
+
+  addAudit(data, actor, {
+    action: `Bốc thăm ngẫu nhiên — Booster ${booster}`,
+    newValue: picked.map((id) => data.teams[id].name).join(", "),
+    reason: `Hòa giá kín ${lot.tieCandidates
+      .map((id) => data.teams[id].name)
+      .join(" / ")} — hệ thống bốc thăm`,
+  });
+
+  lot.tieCandidates = [];
+  lot.tieSlots = 0;
+  lot.status = "PUBLIC";
+  initPublicRound(data, booster);
+}
+
+/**
+ * Trao lô khi hai đội bằng giá và không ai nâng thêm được — hệ thống bốc thăm
+ * thay vì bắt GM quay số ngoài sân khấu.
+ */
+export function awardLotRandom(
+  data: GameData,
+  actor: Actor,
+  booster: BoosterId,
+): void {
+  const lot = data.auction.lots[booster];
+  if (lot.status !== "PUBLIC") fail("Lô này chưa sẵn sàng để trao.");
+  if (lot.candidates.length === 0) fail("Lô này không có đội nào tranh.");
+
+  const winner = lot.currentLeader ?? shuffle(lot.candidates)[0];
+  if (!lot.currentLeader) {
+    addAudit(data, actor, {
+      action: `Bốc thăm ngẫu nhiên chọn đội thắng — Booster ${booster}`,
+      teamId: winner,
+      newValue: data.teams[winner].name,
+      reason: `Hai đội bằng giá ${lot.currentBid}, không ai nâng thêm`,
+    });
+  }
+  awardLot(data, actor, booster, winner);
+}
+
 export function getMinNextBid(data: GameData, booster: BoosterId): number {
   return data.auction.lots[booster].currentBid + MIN_BID_INCREMENT;
 }

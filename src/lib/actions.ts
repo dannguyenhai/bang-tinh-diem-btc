@@ -48,6 +48,8 @@ export type GameAction =
   | { type: "lockSealedAuction" }
   | { type: "randomizeAuctionOrder" }
   | { type: "resolveTie"; booster: BoosterId; teamId: TeamId }
+  | { type: "resolveTieRandom"; booster: BoosterId }
+  | { type: "awardLotRandom"; booster: BoosterId }
   | {
       type: "placePublicBid";
       booster: BoosterId;

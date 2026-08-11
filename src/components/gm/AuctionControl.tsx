@@ -308,20 +308,35 @@ function PublicRound() {
       {lot.status === "TIE_BREAK" ? (
         <div className="space-y-2.5">
           <p className="text-sm text-ink-200">
-            Hòa giá kín. Bốc thăm ngoài sân khấu rồi chọn {lot.tieSlots} đội vào
-            vòng công khai:
+            {lot.tieCandidates.length} đội bằng giá kín, tranh {lot.tieSlots}{" "}
+            suất vào vòng công khai.
           </p>
-          {lot.tieCandidates.map((teamId) => (
-            <Button
-              key={teamId}
-              full
-              variant="ghost"
-              onClick={() => dispatch({ type: "resolveTie", booster, teamId })}
-            >
-              {data.teams[teamId].name} ·{" "}
-              {data.auction.teams[teamId].bids[booster]}
-            </Button>
-          ))}
+          <Button
+            full
+            onClick={() => dispatch({ type: "resolveTieRandom", booster })}
+          >
+            Bốc thăm ngẫu nhiên
+          </Button>
+          <details className="text-xs text-ink-400">
+            <summary className="cursor-pointer py-1 hover:text-neon">
+              Hoặc chọn tay nếu BTC quay số trên sân khấu
+            </summary>
+            <div className="mt-2 space-y-2">
+              {lot.tieCandidates.map((teamId) => (
+                <Button
+                  key={teamId}
+                  full
+                  variant="ghost"
+                  onClick={() =>
+                    dispatch({ type: "resolveTie", booster, teamId })
+                  }
+                >
+                  {data.teams[teamId].name} ·{" "}
+                  {data.auction.teams[teamId].bids[booster]}
+                </Button>
+              ))}
+            </div>
+          </details>
         </div>
       ) : (
         <>
@@ -353,6 +368,12 @@ function PublicRound() {
                 </div>
                 {lot.currentLeader === teamId ? (
                   <Badge tone="brand">Đang dẫn</Badge>
+                ) : minNext > data.auction.teams[teamId].auctionFund ? (
+                  <p className="mt-1.5 text-xs text-ink-400">
+                    Chạm trần quỹ — bước giá tiếp theo là {minNext} nhưng đội
+                    chỉ còn {data.auction.teams[teamId].auctionFund}. Không nâng
+                    thêm được.
+                  </p>
                 ) : (
                   <div className="mt-2 flex items-end gap-2">
                     <NumberField
@@ -401,20 +422,33 @@ function PublicRound() {
             ) : (
               <>
                 <p className="text-xs text-ink-400">
-                  Hai đội bằng giá và chưa ai nâng — GM bốc thăm rồi trao:
+                  Hai đội bằng giá {lot.currentBid} và chưa ai nâng.
                 </p>
-                {lot.candidates.map((teamId) => (
-                  <Button
-                    key={teamId}
-                    full
-                    variant="ghost"
-                    onClick={() =>
-                      dispatch({ type: "awardLot", booster, winner: teamId })
-                    }
-                  >
-                    Trao cho {data.teams[teamId].name} · {lot.currentBid}
-                  </Button>
-                ))}
+                <Button
+                  full
+                  onClick={() => dispatch({ type: "awardLotRandom", booster })}
+                >
+                  Bốc thăm ngẫu nhiên & trao · {lot.currentBid}
+                </Button>
+                <details className="text-xs text-ink-400">
+                  <summary className="cursor-pointer py-1 hover:text-neon">
+                    Hoặc chỉ định đội thắng
+                  </summary>
+                  <div className="mt-2 space-y-2">
+                    {lot.candidates.map((teamId) => (
+                      <Button
+                        key={teamId}
+                        full
+                        variant="ghost"
+                        onClick={() =>
+                          dispatch({ type: "awardLot", booster, winner: teamId })
+                        }
+                      >
+                        Trao cho {data.teams[teamId].name} · {lot.currentBid}
+                      </Button>
+                    ))}
+                  </div>
+                </details>
               </>
             )}
             <Button

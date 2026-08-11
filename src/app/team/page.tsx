@@ -673,6 +673,16 @@ function PublicAuctionPanel({ teamId }: { teamId: TeamId }) {
         (inRound ? (
           lot.currentLeader === teamId ? (
             <Badge tone="win">Đội bạn đang dẫn giá</Badge>
+          ) : minNext > fund ? (
+            <div className="rounded-lg border border-ink-600 bg-ink-800/40 p-3">
+              <p className="text-sm font-bold text-ink-200">
+                Đội bạn đã chạm trần quỹ đấu giá.
+              </p>
+              <p className="mt-1 text-xs text-ink-400">
+                Bước giá tiếp theo là {minNext} nhưng quỹ chỉ còn {fund}. Không
+                nâng thêm được — chờ Game Master chốt lô này.
+              </p>
+            </div>
           ) : (
             <div className="space-y-2">
               <NumberField

@@ -475,5 +475,142 @@ M.closeBoosterResponse(d, gm, 4);
 M.lockResult(d, gm, 4);
 eq("Delta hoàn 50% của 30, tối đa 20 → 85", d.teams.TEAM_1.currentEnergy, 85);
 
+
+
+/* --- Đấu giá: các tình huống hiểm --- */
+function auctionReady(energies: number[]) {
+  const s = createInitialGameData(100, () => "hash");
+  const map = {} as Record<TeamId, number>;
+  T.forEach((t, i) => { map[t] = energies[i]; });
+  M.openEnergy(s, gm, map);
+  for (const id of [1, 2] as ChallengeId[]) {
+    M.openChallenge(s, gm, id);
+    T.forEach((t) => M.submitInvestment(s, gm, t, id, 1, false));
+    M.lockInvestment(s, gm, id);
+    M.startResultEntry(s, gm, id);
+    T.forEach((t) => M.setResult(s, gm, t, id, "LOSE"));
+    M.lockResult(s, gm, id);
+  }
+  M.openSealedAuction(s, gm);
+  return s;
+}
+
+/* (1) Cả 4 đội dồn hết tiền vào đúng một Booster */
+const allin = auctionReady([100, 100, 100, 100]);
+const fundAll = allin.auction.teams.TEAM_1.auctionFund;
+T.forEach((t) =>
+  M.submitSealedBids(allin, gm, t, { ALPHA: fundAll, BETA: 0, GAMMA: 0, DELTA: 0 }),
+);
+M.lockSealedAuction(allin, gm);
+allin.auction.order = ["ALPHA", "BETA", "GAMMA", "DELTA"];
+allin.auction.currentLotIndex = 0;
+allin.auction.phase = "RUNNING";
+M.prepareCurrentLot(allin);
+
+eq("All-in ALPHA — 4 đội bằng giá, phải bốc thăm chọn 2 suất", allin.auction.lots.ALPHA.status, "TIE_BREAK");
+eq("Bốc thăm cho 2 suất", allin.auction.lots.ALPHA.tieSlots, 2);
+eq("Cả 4 đội đều trong nhóm hòa", allin.auction.lots.ALPHA.tieCandidates.length, 4);
+
+M.resolveTie(allin, gm, "ALPHA", "TEAM_1");
+M.resolveTie(allin, gm, "ALPHA", "TEAM_2");
+eq("Chọn xong 2 đội thì vào đấu công khai", allin.auction.lots.ALPHA.status, "PUBLIC");
+eq("Hai đội bằng giá → chưa ai dẫn", allin.auction.lots.ALPHA.currentLeader, null);
+
+// Cả hai đã ở trần quỹ nên không ai nâng thêm được.
+eq("Bước giá tiếp theo vượt trần quỹ", M.getMinNextBid(allin, "ALPHA") > fundAll, true);
+let blocked = "";
+try { M.placePublicBid(allin, gm, "ALPHA", "TEAM_2", fundAll + 5); }
+catch (e) { blocked = (e as Error).message; }
+eq("Nâng quá quỹ bị chặn", blocked.includes("Vượt quỹ"), true);
+
+M.awardLot(allin, gm, "ALPHA", "TEAM_1"); // GM bốc thăm ngoài sân khấu
+eq("TEAM_1 thắng ALPHA", allin.teams.TEAM_1.boosterOwned, "ALPHA");
+eq("Ba Booster còn lại không ai đặt giá → bỏ qua hết", ["BETA","GAMMA","DELTA"].every((b) => allin.auction.lots[b as "BETA"].status === "SKIPPED"), true);
+eq("Chuyển sang phân bổ", allin.auction.phase, "FALLBACK");
+
+M.randomizeFallbackOrder(allin, gm);
+for (let i = 0; i < 3; i += 1) {
+  const turn = M.getUnassignedTeams(allin)[0];
+  const free = M.getUnassignedBoosters(allin)[0];
+  M.assignFallbackBooster(allin, gm, allin.auction.fallbackOrder.find((t) => !allin.teams[t].boosterOwned)!, free);
+  void turn;
+}
+eq("KHÔNG đội nào ra về tay trắng", T.every((t) => allin.teams[t].boosterOwned !== null), true);
+eq("Bốn Booster về bốn đội khác nhau", new Set(T.map((t) => allin.teams[t].boosterOwned)).size, 4);
+eq("Đấu giá kết thúc", allin.auction.phase, "DONE");
+eq("Đội nhận vét trả giá sàn 5", allin.teams[T.find((t) => t !== "TEAM_1")!].currentEnergy, allin.auction.teams[T.find((t) => t !== "TEAM_1")!].energySnapshot - 5);
+
+/* (2) Hai đội cùng trần quỹ, cùng all-in → bế tắc, GM bốc thăm */
+const tie2 = auctionReady([100, 100, 40, 40]);
+const f1 = tie2.auction.teams.TEAM_1.auctionFund;
+M.submitSealedBids(tie2, gm, "TEAM_1", { ALPHA: f1, BETA: 0, GAMMA: 0, DELTA: 0 });
+M.submitSealedBids(tie2, gm, "TEAM_2", { ALPHA: f1, BETA: 0, GAMMA: 0, DELTA: 0 });
+M.submitSealedBids(tie2, gm, "TEAM_3", { ALPHA: 0, BETA: 3, GAMMA: 0, DELTA: 0 });
+M.submitSealedBids(tie2, gm, "TEAM_4", { ALPHA: 0, BETA: 0, GAMMA: 3, DELTA: 0 });
+M.lockSealedAuction(tie2, gm);
+tie2.auction.order = ["ALPHA", "BETA", "GAMMA", "DELTA"];
+tie2.auction.currentLotIndex = 0;
+tie2.auction.phase = "RUNNING";
+M.prepareCurrentLot(tie2);
+eq("Đúng 2 đội bằng giá → vào thẳng đấu công khai, không cần bốc thăm suất", tie2.auction.lots.ALPHA.status, "PUBLIC");
+eq("Không đội nào được coi là đang dẫn", tie2.auction.lots.ALPHA.currentLeader, null);
+eq("Có ghi chú nhắc GM", tie2.auction.lots.ALPHA.note !== null, true);
+M.awardLot(tie2, gm, "ALPHA", "TEAM_2");
+eq("GM trao được cho đội bốc thăm trúng", tie2.auction.lots.ALPHA.winner, "TEAM_2");
+eq("Trả đúng giá đang đứng", tie2.auction.lots.ALPHA.winningPrice, f1);
+
+/* (3) Chỉ một đội đặt giá cho lô đó → thắng ngay, không cần đấu */
+const solo = auctionReady([100, 100, 100, 100]);
+M.submitSealedBids(solo, gm, "TEAM_1", { ALPHA: 10, BETA: 0, GAMMA: 0, DELTA: 0 });
+M.submitSealedBids(solo, gm, "TEAM_2", { ALPHA: 0, BETA: 10, GAMMA: 0, DELTA: 0 });
+M.submitSealedBids(solo, gm, "TEAM_3", { ALPHA: 0, BETA: 0, GAMMA: 10, DELTA: 0 });
+M.submitSealedBids(solo, gm, "TEAM_4", { ALPHA: 0, BETA: 0, GAMMA: 0, DELTA: 10 });
+M.lockSealedAuction(solo, gm);
+solo.auction.order = ["ALPHA", "BETA", "GAMMA", "DELTA"];
+solo.auction.currentLotIndex = 0;
+solo.auction.phase = "RUNNING";
+M.prepareCurrentLot(solo);
+eq("Một mình một giá → thành đội dẫn ngay", solo.auction.lots.ALPHA.currentLeader, "TEAM_1");
+eq("Giá đúng bằng giá kín", solo.auction.lots.ALPHA.currentBid, 10);
+
+
+
+/* --- Bốc thăm tự động khi bằng giá --- */
+const r1 = auctionReady([100, 100, 100, 100]);
+const fr = r1.auction.teams.TEAM_1.auctionFund;
+T.forEach((t) => M.submitSealedBids(r1, gm, t, { ALPHA: fr, BETA: 0, GAMMA: 0, DELTA: 0 }));
+M.lockSealedAuction(r1, gm);
+r1.auction.order = ["ALPHA", "BETA", "GAMMA", "DELTA"];
+r1.auction.currentLotIndex = 0;
+r1.auction.phase = "RUNNING";
+M.prepareCurrentLot(r1);
+
+M.resolveTieRandom(r1, gm, "ALPHA");
+eq("Bốc thăm tự động chọn đủ 2 suất", r1.auction.lots.ALPHA.candidates.length, 2);
+eq("Hai đội được chọn khác nhau", new Set(r1.auction.lots.ALPHA.candidates).size, 2);
+eq("Chuyển sang đấu công khai", r1.auction.lots.ALPHA.status, "PUBLIC");
+eq("Hết nhóm chờ bốc thăm", r1.auction.lots.ALPHA.tieCandidates.length, 0);
+eq("Có ghi nhật ký việc bốc thăm", r1.auditLog[0].action.includes("Bốc thăm ngẫu nhiên"), true);
+
+M.awardLotRandom(r1, gm, "ALPHA");
+const champ = r1.auction.lots.ALPHA.winner!;
+eq("Trao được cho một trong hai đội đã bốc", r1.auction.lots.ALPHA.candidates.includes(champ), true);
+eq("Đội thắng nhận Booster", r1.teams[champ].boosterOwned, "ALPHA");
+eq("Trừ đúng giá đang đứng", r1.teams[champ].currentEnergy, r1.auction.teams[champ].energySnapshot - fr);
+
+// Khi đã có đội dẫn giá thì không bốc thăm nữa, trao thẳng cho đội đó.
+const r2 = auctionReady([100, 100, 100, 100]);
+M.submitSealedBids(r2, gm, "TEAM_1", { ALPHA: 40, BETA: 0, GAMMA: 0, DELTA: 0 });
+M.submitSealedBids(r2, gm, "TEAM_2", { ALPHA: 20, BETA: 0, GAMMA: 0, DELTA: 0 });
+M.submitSealedBids(r2, gm, "TEAM_3", { ALPHA: 0, BETA: 5, GAMMA: 0, DELTA: 0 });
+M.submitSealedBids(r2, gm, "TEAM_4", { ALPHA: 0, BETA: 0, GAMMA: 5, DELTA: 0 });
+M.lockSealedAuction(r2, gm);
+r2.auction.order = ["ALPHA", "BETA", "GAMMA", "DELTA"];
+r2.auction.currentLotIndex = 0;
+r2.auction.phase = "RUNNING";
+M.prepareCurrentLot(r2);
+M.awardLotRandom(r2, gm, "ALPHA");
+eq("Có đội dẫn thì trao đúng đội đó, không random", r2.auction.lots.ALPHA.winner, "TEAM_1");
+
 console.log(`\n${pass} đạt / ${fail} lỗi`);
 process.exit(fail > 0 ? 1 : 0);
