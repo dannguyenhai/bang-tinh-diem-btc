@@ -14,7 +14,8 @@ import {
   getMinNextBid,
   getUnassignedBoosters,
   getUnassignedTeams,
-  isLastBoosterLeft,
+  getLotAwardPrice,
+  isFinalTeamRemaining,
 } from "@/lib/mutations";
 import { getCurrentLotBooster, nextFallbackTeam } from "@/lib/selectors";
 import { useGameStore } from "@/lib/store";
@@ -328,6 +329,12 @@ function PublicRound() {
       subtitle={`Thứ tự: ${data.auction.order.join(" → ")}`}
     >
       {lot.note && <p className="mb-3 text-xs text-neon">{lot.note}</p>}
+      {isFinalTeamRemaining(data) && (
+        <p className="mb-3 rounded-lg border border-neon/40 bg-neon/5 px-3 py-2 text-xs text-neon">
+          Chỉ còn một đội chưa có Booster — món này tính theo nửa quỹ đấu giá
+          của đội đó, không theo giá đã đặt.
+        </p>
+      )}
 
       {lot.status === "TIE_BREAK" ? (
         <div className="space-y-2.5">
@@ -441,7 +448,7 @@ function PublicRound() {
                 onClick={() => dispatch({ type: "awardLot", booster })}
               >
                 Award Booster cho {data.teams[lot.currentLeader].name} ·{" "}
-                {lot.currentBid}
+                {getLotAwardPrice(data, booster, lot.currentLeader)}
               </Button>
             ) : (
               <>
@@ -452,7 +459,7 @@ function PublicRound() {
                   full
                   onClick={() => dispatch({ type: "awardLotRandom", booster })}
                 >
-                  Bốc thăm ngẫu nhiên & trao · {lot.currentBid}
+                  Bốc thăm ngẫu nhiên & trao
                 </Button>
                 <details className="text-xs text-ink-400">
                   <summary className="cursor-pointer py-1 hover:text-neon">
@@ -468,7 +475,8 @@ function PublicRound() {
                           dispatch({ type: "awardLot", booster, winner: teamId })
                         }
                       >
-                        Trao cho {data.teams[teamId].name} · {lot.currentBid}
+                        Trao cho {data.teams[teamId].name} ·{" "}
+                        {getLotAwardPrice(data, booster, teamId)}
                       </Button>
                     ))}
                   </div>
@@ -524,9 +532,11 @@ function FallbackRound() {
           {turn ? (
             <div className="space-y-2">
               <Badge tone="brand">Đến lượt {data.teams[turn].name}</Badge>
-              {isLastBoosterLeft(data) && (
+              {isFinalTeamRemaining(data) && (
                 <p className="text-xs text-neon">
-                  Món cuối cùng — mua với nửa quỹ đấu giá của đội.
+                  Đội cuối cùng — mua với nửa quỹ đấu giá ({" "}
+                  {getFallbackPrice(data, turn, getUnassignedBoosters(data)[0])}{" "}
+                  ), bất kể giá đã đặt.
                 </p>
               )}
               {boostersLeft.map((booster) => (

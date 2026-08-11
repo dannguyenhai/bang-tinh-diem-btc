@@ -9,7 +9,7 @@ Phân quyền được cưỡng chế ở **backend**, không phải chỉ ẩn 
 ```bash
 npm install
 npm run dev        # http://localhost:3000
-npm run verify     # 193 test: công thức tính điểm, vòng đời Booster, đấu giá, phân quyền, lọc dữ liệu
+npm run verify     # 205 test: công thức tính điểm, vòng đời Booster, đấu giá, phân quyền, lọc dữ liệu
 ```
 
 ## Thiết lập (làm một lần)
@@ -79,7 +79,7 @@ Thiếu `SUPABASE_SERVICE_ROLE_KEY` thì app không chạy được: mọi thao 
 - Quỹ đấu giá `floor(Energy sau TT2 × 80%)`. Giá kín không bị trừ Energy — chỉ đội thắng mới trả.
 - Thứ tự lên sàn: Booster có **tổng điểm đặt cao nhất** đấu trước; hòa tổng thì xáo trộn.
 - Vòng công khai: top 2 giá kín > 0 trong nhóm chưa có Booster, bước giá `+5`, trần bằng quỹ. Hòa thì hệ thống bốc thăm, đội trúng trả **đúng giá kín của chính mình**; đã có nâng giá công khai thì trả giá chốt.
-- Không ai đặt giá → lô `SKIPPED`, xuống vòng phân bổ với giá `min(quỹ, max(giá kín, 5))`. **Booster cuối cùng** (còn đúng 1 đội và 1 Booster) mua với `floor(quỹ × 50%)`. Quỹ = 0 thì nhận giá 0.
+- Không ai đặt giá → lô `SKIPPED`, xuống vòng phân bổ với giá `min(quỹ, max(giá kín, 5))`. **Đội cuối cùng** — khi chỉ còn một đội chưa có Booster — mua món cuối với `floor(quỹ × 50%)`, bất kể giá đã đặt và bất kể đến qua đấu giá hay phân bổ. Ví dụ 100 Energy → quỹ 80 → trả 40. Quỹ = 0 thì nhận giá 0.
 - Nhiều đội cùng thắng một thử thách là hợp lệ — hệ thống tính độc lập từng đội.
 - Energy chỉ đổi khi GM **Khóa kết quả**; LED chỉ đổi khi GM **Publish**.
 - Sửa dữ liệu đã khóa phải qua *Mở lại kết quả* + lý do, ghi vào nhật ký.
@@ -124,7 +124,7 @@ src/lib/server/dispatch.ts kiểm quyền rồi áp hành động
 src/lib/server/redact.ts   cắt dữ liệu theo vai trước khi trả về
 src/lib/server/gameStore.ts đọc/ghi Supabase bằng service_role
 src/app/api/*              login · logout · state · action
-scripts/verify.ts          193 test
+scripts/verify.ts          205 test
 ```
 
 Toàn bộ ván chơi là một dòng JSONB. Mỗi lần ghi kèm `version` cũ; nếu máy khác vừa ghi trước, server đọc lại bản mới và áp lại hành động (tối đa 5 lần) — GM và Care Team bấm cùng lúc không mất dữ liệu.

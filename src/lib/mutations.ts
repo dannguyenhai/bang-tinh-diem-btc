@@ -795,12 +795,7 @@ export function awardLot(
   if (!winner) fail("Chưa có đội dẫn giá — GM cần bốc thăm và chọn đội thắng.");
   if (!lot.candidates.includes(winner)) fail("Đội này không ở trong vòng đấu.");
 
-  // Chưa ai nâng giá công khai thì đội thắng trả đúng giá kín của mình,
-  // không phải mức giá chung của lô.
-  const price =
-    lot.currentLeader === null
-      ? data.auction.teams[winner].bids[booster]
-      : lot.currentBid;
+  const price = getLotAwardPrice(data, booster, winner);
   const team = data.teams[winner];
   const before = team.currentEnergy;
 
@@ -873,11 +868,17 @@ export function randomizeFallbackOrder(data: GameData, actor: Actor): void {
   });
 }
 
-export function isLastBoosterLeft(data: GameData): boolean {
-  return (
-    getUnassignedTeams(data).length === 1 &&
-    getUnassignedBoosters(data).length === 1
-  );
+/**
+ * Chỉ còn đúng một đội chưa có Booster. Món họ nhận là món cuối của cả
+ * phiên, không còn ai tranh — dù đến qua đấu giá hay qua phân bổ.
+ */
+export function isFinalTeamRemaining(data: GameData): boolean {
+  return getUnassignedTeams(data).length === 1;
+}
+
+/** Giá món cuối: nửa quỹ đấu giá của chính đội đó. */
+export function getFinalBoosterPrice(data: GameData, teamId: TeamId): number {
+  return Math.floor(data.auction.teams[teamId].auctionFund * 0.5);
 }
 
 export function getFallbackPrice(
@@ -887,10 +888,26 @@ export function getFallbackPrice(
 ): number {
   const fund = data.auction.teams[teamId].auctionFund;
   if (fund === 0) return 0;
-  // Món cuối cùng không còn ai tranh — đội còn lại mua với nửa quỹ.
-  if (isLastBoosterLeft(data)) return Math.floor(fund * 0.5);
+  if (isFinalTeamRemaining(data)) return getFinalBoosterPrice(data, teamId);
   const sealed = data.auction.teams[teamId].bids[booster];
   return Math.min(fund, Math.max(sealed, FALLBACK_FLOOR_PRICE));
+}
+
+/**
+ * Giá đội thắng phải trả cho một lô đấu giá. Dùng chung cho cả mutation lẫn
+ * giao diện, để con số GM nhìn thấy đúng bằng con số bị trừ.
+ */
+export function getLotAwardPrice(
+  data: GameData,
+  booster: BoosterId,
+  winner: TeamId,
+): number {
+  if (isFinalTeamRemaining(data)) return getFinalBoosterPrice(data, winner);
+  const lot = data.auction.lots[booster];
+  // Chưa ai nâng giá công khai thì trả đúng giá kín của mình.
+  return lot.currentLeader === null
+    ? data.auction.teams[winner].bids[booster]
+    : lot.currentBid;
 }
 
 export function assignFallbackBooster(

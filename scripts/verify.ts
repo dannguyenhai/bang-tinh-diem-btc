@@ -764,7 +764,7 @@ eq("Món chưa phải cuối → giá sàn 5", M.getFallbackPrice(last, line[0],
 M.assignFallbackBooster(last, gm, line[0], M.getUnassignedBoosters(last)[0]);
 M.assignFallbackBooster(last, gm, line[1], M.getUnassignedBoosters(last)[0]);
 
-eq("Giờ chỉ còn một đội và một Booster", M.isLastBoosterLeft(last), true);
+eq("Giờ chỉ còn một đội chưa có Booster", M.isFinalTeamRemaining(last), true);
 const lastBooster = M.getUnassignedBoosters(last)[0];
 eq("Món cuối = nửa quỹ", M.getFallbackPrice(last, line[2], lastBooster), Math.floor(lf * 0.5));
 
@@ -818,6 +818,40 @@ applyAction(nm, { type: "setTeamProfile", teamId: "TEAM_1", name: "GM ĐỔI H�
 eq("Nhưng Game Master vẫn đổi được", nm.teams.TEAM_1.name, "GM ĐỔI HỘ");
 applyAction(nm, { type: "setTeamProfile", teamId: "TEAM_1", pin: "4321" }, gmSession);
 eq("Và Game Master vẫn đổi được PIN", verifyPin("4321", nm.teams.TEAM_1.pinHash), true);
+
+
+
+/* --- Đội cuối cùng luôn trả nửa quỹ, kể cả khi thắng qua đấu giá --- */
+// 102 trừ 2 lượt đầu tư 1 điểm ở TT1/TT2 → snapshot đúng 100 như ví dụ BTC.
+const fin = auctionReady([102, 102, 102, 102]);
+eq("Energy chốt sổ 100", fin.auction.teams.TEAM_4.energySnapshot, 100);
+eq("Quỹ đấu giá = 80% của 100", fin.auction.teams.TEAM_4.auctionFund, 80);
+
+// Mỗi đội nhắm một Booster riêng: không lô nào phải đấu công khai.
+M.submitSealedBids(fin, gm, "TEAM_1", { ALPHA: 30, BETA: 0, GAMMA: 0, DELTA: 0 });
+M.submitSealedBids(fin, gm, "TEAM_2", { ALPHA: 0, BETA: 25, GAMMA: 0, DELTA: 0 });
+M.submitSealedBids(fin, gm, "TEAM_3", { ALPHA: 0, BETA: 0, GAMMA: 20, DELTA: 0 });
+M.submitSealedBids(fin, gm, "TEAM_4", { ALPHA: 0, BETA: 0, GAMMA: 0, DELTA: 10 });
+M.lockSealedAuction(fin, gm);
+M.orderAuctionLots(fin, gm);
+eq("Thứ tự theo tổng đặt", fin.auction.order, ["ALPHA", "BETA", "GAMMA", "DELTA"]);
+
+M.awardLot(fin, gm, "ALPHA");
+eq("Đội 1 trả đúng giá kín 30", fin.teams.TEAM_1.currentEnergy, fin.auction.teams.TEAM_1.energySnapshot - 30);
+M.awardLot(fin, gm, "BETA");
+eq("Đội 2 trả đúng giá kín 25", fin.teams.TEAM_2.currentEnergy, fin.auction.teams.TEAM_2.energySnapshot - 25);
+M.awardLot(fin, gm, "GAMMA");
+eq("Đội 3 trả đúng giá kín 20", fin.teams.TEAM_3.currentEnergy, fin.auction.teams.TEAM_3.energySnapshot - 20);
+
+// Giờ chỉ còn TEAM_4 và lô DELTA — dù đã đặt kín 10, vẫn phải trả nửa quỹ.
+eq("Chỉ còn một đội chưa có Booster", M.isFinalTeamRemaining(fin), true);
+eq("Món cuối = 50% của quỹ 80 = 40, không phải giá kín 10", M.getLotAwardPrice(fin, "DELTA", "TEAM_4"), 40);
+const snap4 = fin.auction.teams.TEAM_4.energySnapshot;
+M.awardLot(fin, gm, "DELTA");
+eq("Đội cuối bị trừ 40, không phải 10", fin.teams.TEAM_4.currentEnergy, snap4 - 40);
+eq("Ghi đúng giá vào kết quả lô", fin.auction.lots.DELTA.winningPrice, 40);
+eq("Bốn đội đủ Booster", T.every((t) => fin.teams[t].boosterOwned !== null), true);
+eq("Đấu giá kết thúc", fin.auction.phase, "DONE");
 
 console.log(`\n${pass} đạt / ${fail} lỗi`);
 process.exit(fail > 0 ? 1 : 0);
