@@ -5,6 +5,12 @@ import type { Actor, ChallengeId, TeamId } from "../src/lib/types";
 import { ForbiddenError, applyAction } from "../src/lib/server/dispatch";
 import { redactForSession } from "../src/lib/server/redact";
 import { verifyPin } from "../src/lib/server/crypto";
+import {
+  getActiveChallengeId,
+  getNextChallengeId,
+  hasPendingPublish,
+  hasUnpublishedChanges,
+} from "../src/lib/selectors";
 
 let pass = 0;
 let fail = 0;
@@ -315,6 +321,46 @@ eq("Factory reset — đóng lại nguồn Energy", g.energyOpened, false);
 eq("Factory reset — nhật ký chỉ còn dòng ghi việc reset", g.auditLog.length, 1);
 eq("Factory reset — có ghi vào nhật ký", g.auditLog[0].action, "KHÔI PHỤC TOÀN BỘ VỀ MẶC ĐỊNH");
 eq("Factory reset — state thực sự đổi", JSON.stringify(g.teams.TEAM_1) !== beforeFactory, true);
+
+
+
+/* --- Không được kẹt sau khi khóa kết quả một vòng không đổi Energy --- */
+const k = createInitialGameData(100, () => "hash");
+M.openEnergy(k, gm, { TEAM_1: 100, TEAM_2: 100, TEAM_3: 100, TEAM_4: 100 });
+
+// Chơi TT1, TT2 cho đúng trình tự rồi mới tới TT3.
+for (const id of [1, 2] as ChallengeId[]) {
+  M.openChallenge(k, gm, id);
+  T.forEach((t) => M.submitInvestment(k, gm, t, id, 10, false));
+  M.lockInvestment(k, gm, id);
+  M.startResultEntry(k, gm, id);
+  T.forEach((t) => M.setResult(k, gm, t, id, "WIN"));
+  M.lockResult(k, gm, id);
+}
+M.publishScoreboard(k, gm);
+
+// TT3: cả 4 đội cùng thua → Energy giữ nguyên → không có gì để Publish.
+M.openChallenge(k, gm, 3);
+M.startResultEntry(k, gm, 3);
+T.forEach((t) => M.setResult(k, gm, t, 3, "LOSE"));
+M.lockResult(k, gm, 3);
+
+const afterTT2 = T.map((t) => k.teams[t].currentEnergy);
+eq("TT3 thua hết — Energy không đổi", T.map((t) => k.teams[t].currentEnergy), afterTT2);
+eq("Không có chênh lệch với LED", hasUnpublishedChanges(k), false);
+eq("Nhưng vẫn còn việc để Publish", hasPendingPublish(k), true);
+eq("Vòng đang điều hành vẫn là TT3", getActiveChallengeId(k), 3);
+eq("Và TT4 sẵn sàng để mở", getNextChallengeId(k), 4);
+
+// Mở TT4 ngay, không cần Publish trước.
+M.openChallenge(k, gm, 4);
+eq("Mở được TT4 khi TT3 mới chỉ khóa", k.challenges[4].status, "OPEN_FOR_INVESTMENT");
+eq("Màn điều hành chuyển sang TT4", getActiveChallengeId(k), 4);
+
+// Publish sau đó vẫn đưa TT3 sang PUBLISHED.
+M.publishScoreboard(k, gm);
+eq("TT3 chuyển sang đã công bố", k.challenges[3].status, "PUBLISHED");
+eq("Hết việc phải công bố", hasPendingPublish(k), false);
 
 console.log(`\n${pass} đạt / ${fail} lỗi`);
 process.exit(fail > 0 ? 1 : 0);

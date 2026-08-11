@@ -9,7 +9,7 @@ import { ChallengeControl } from "@/components/gm/ChallengeControl";
 import { TeamsAdmin } from "@/components/gm/TeamsAdmin";
 import { Badge, Button } from "@/components/ui";
 import { TEAM_IDS } from "@/lib/config";
-import { hasUnpublishedChanges } from "@/lib/selectors";
+import { hasPendingPublish, hasUnpublishedChanges } from "@/lib/selectors";
 import { useGameStore } from "@/lib/store";
 
 const TABS = [
@@ -68,7 +68,8 @@ export default function GmPage() {
 function ScoreStrip() {
   const data = useGameStore((s) => s.data);
   const dispatch = useGameStore((s) => s.dispatch);
-  const pending = hasUnpublishedChanges(data);
+  const pending = hasPendingPublish(data);
+  const energyChanged = hasUnpublishedChanges(data);
 
   return (
     <section className="enter glow-soft rounded-2xl border border-ink-700/80 bg-linear-to-b from-ink-900/90 to-ink-950/80 p-3 backdrop-blur sm:p-4">
@@ -139,8 +140,10 @@ function ScoreStrip() {
           Publish Scoreboard
         </Button>
         <div className="flex justify-center sm:justify-start">
-          {pending ? (
+          {energyChanged ? (
             <Badge tone="brand">Có thay đổi chưa công bố</Badge>
+          ) : pending ? (
+            <Badge tone="info">Còn vòng chưa công bố</Badge>
           ) : (
             <Badge tone="win">LED đang khớp</Badge>
           )}

@@ -26,13 +26,8 @@ export function ChallengeControl() {
       {!data.energyOpened && <OpenEnergyForm />}
 
       <Card title="Tiến trình gameshow">
-        <div className="relative">
-          {/* Đường nối giữa 5 chặng */}
-          <div
-            aria-hidden
-            className="absolute top-7 right-[10%] left-[10%] h-px bg-linear-to-r from-transparent via-ink-600 to-transparent"
-          />
-          <div className="relative grid grid-cols-5 gap-1.5 sm:gap-2.5">
+        <div>
+          <div className="grid grid-cols-5 gap-1.5 sm:gap-2.5">
             {CHALLENGE_IDS.map((id, index) => {
               const status = data.challenges[id].status;
               const done = status === "PUBLISHED" || status === "RESULT_LOCKED";
@@ -146,6 +141,7 @@ function ChallengeDetail({ challengeId }: { challengeId: ChallengeId }) {
   const config = CHALLENGES[challengeId];
   const challenge = data.challenges[challengeId];
   const status = challenge.status;
+  const nextId = getNextChallengeId(data);
   const [reason, setReason] = useState("");
 
   const responseTeams = getBoosterResponseTeams(data, challengeId);
@@ -157,7 +153,15 @@ function ChallengeDetail({ challengeId }: { challengeId: ChallengeId }) {
     <Card
       title={config.name}
       subtitle={`${config.participantType} · Reward ${config.baseReward}`}
-      right={<Badge tone="brand">{CHALLENGE_STATUS_LABEL[status]}</Badge>}
+      right={
+        <Badge
+          tone={
+            status === "RESULT_LOCKED" || status === "PUBLISHED" ? "win" : "info"
+          }
+        >
+          {CHALLENGE_STATUS_LABEL[status]}
+        </Badge>
+      }
     >
       <div className="grid gap-2.5 lg:grid-cols-2">
         {TEAM_IDS.map((teamId, index) => (
@@ -234,8 +238,19 @@ function ChallengeDetail({ challengeId }: { challengeId: ChallengeId }) {
           </Button>
         )}
 
+        {(status === "RESULT_LOCKED" || status === "PUBLISHED") &&
+          nextId !== null && (
+            <div className="space-y-2">
+              <p className="text-center text-xs text-ink-400">
+                Vòng này đã chốt Energy. Có thể mở vòng kế tiếp ngay, không cần
+                chờ Publish.
+              </p>
+              <OpenChallengeButton challengeId={nextId} />
+            </div>
+          )}
+
         {status === "RESULT_LOCKED" && (
-          <div className="rounded-lg space-y-2 border border-lose/30 bg-lose/5 p-3">
+          <div className="space-y-2 rounded-lg border border-lose/30 bg-lose/5 p-3">
             <p className="text-xs text-ink-400">
               Cần sửa? Phải mở lại kèm lý do, hệ thống ghi vào nhật ký.
             </p>
