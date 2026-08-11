@@ -1,103 +1,163 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { ErrorBanner, LoadingScreen, SyncPill } from "@/components/AppShell";
+import { Button } from "@/components/ui";
+import { useGameStore } from "@/lib/store";
+import type { TeamId } from "@/lib/types";
+
+type Choice = { kind: "GM" } | { kind: "TEAM"; teamId: TeamId; name: string };
+
+export default function LoginPage() {
+  const router = useRouter();
+  const hydrated = useGameStore((s) => s.hydrated);
+  const roster = useGameStore((s) => s.roster);
+  const login = useGameStore((s) => s.login);
+
+  const [choice, setChoice] = useState<Choice | null>(null);
+  const [pin, setPin] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  if (!hydrated) return <LoadingScreen />;
+
+  const label = choice?.kind === "GM" ? "GAME MASTER" : (choice?.name ?? "");
+
+  async function submitPin(event: React.FormEvent) {
+    event.preventDefault();
+    if (!choice || busy) return;
+    setBusy(true);
+    const ok =
+      choice.kind === "GM"
+        ? await login("GM", null, pin)
+        : await login("CARE_TEAM", choice.teamId, pin);
+    setBusy(false);
+    setPin("");
+    if (ok) router.push(choice.kind === "GM" ? "/gm" : "/team");
+  }
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="flex min-h-dvh flex-col px-5 py-8">
+      <div className="mx-auto flex w-full max-w-md flex-1 flex-col">
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-bold tracking-[0.3em] text-brand uppercase">
+              Make Your Move
+            </p>
+            <h1 className="mt-1 text-2xl font-black tracking-tight text-white">
+              The Strategy Game
+            </h1>
+          </div>
+          <SyncPill />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        {!choice ? (
+          <>
+            <h2 className="mb-4 text-lg font-black tracking-wide text-white">
+              BẠN LÀ AI?
+            </h2>
+            <div className="space-y-2.5">
+              {roster.map((team) => (
+                <button
+                  key={team.id}
+                  onClick={() =>
+                    setChoice({
+                      kind: "TEAM",
+                      teamId: team.id,
+                      name: team.name,
+                    })
+                  }
+                  className="flex w-full items-center gap-3 rounded-2xl border border-ink-700 bg-ink-900/70 px-4 py-4 text-left transition-colors hover:border-brand"
+                >
+                  <span
+                    className="h-8 w-1.5 rounded-full"
+                    style={{ background: team.color }}
+                  />
+                  <span className="flex-1">
+                    <span className="block text-base font-bold text-white">
+                      {team.name}
+                    </span>
+                    <span className="block text-xs text-ink-400">Care Team</span>
+                  </span>
+                  <span className="text-ink-400">›</span>
+                </button>
+              ))}
+
+              <button
+                onClick={() => setChoice({ kind: "GM" })}
+                className="flex w-full items-center gap-3 rounded-2xl border border-brand/50 bg-brand/10 px-4 py-4 text-left transition-colors hover:bg-brand/20"
+              >
+                <span className="h-8 w-1.5 rounded-full bg-brand" />
+                <span className="flex-1">
+                  <span className="block text-base font-bold text-brand">
+                    GAME MASTER
+                  </span>
+                  <span className="block text-xs text-brand-dim">
+                    Toàn quyền điều hành
+                  </span>
+                </span>
+                <span className="text-brand">›</span>
+              </button>
+            </div>
+
+            <Link
+              href="/scoreboard"
+              className="mt-6 block rounded-2xl border border-dashed border-ink-700 px-4 py-3.5 text-center text-sm font-bold tracking-wider text-ink-200 uppercase hover:border-info hover:text-info"
+            >
+              Màn hình Scoreboard (LED)
+            </Link>
+          </>
+        ) : (
+          <form onSubmit={submitPin} className="flex flex-1 flex-col">
+            <button
+              type="button"
+              onClick={() => {
+                setChoice(null);
+                setPin("");
+              }}
+              className="mb-6 self-start text-xs font-bold text-ink-400 uppercase hover:text-white"
+            >
+              ‹ Chọn lại
+            </button>
+
+            <p className="text-xs font-bold tracking-[0.2em] text-ink-400 uppercase">
+              Đăng nhập với vai
+            </p>
+            <h2 className="mt-1 mb-6 text-2xl font-black text-white">{label}</h2>
+
+            <label className="block">
+              <span className="mb-2 block text-[11px] font-bold tracking-[0.14em] text-ink-400 uppercase">
+                Nhập PIN
+              </span>
+              <input
+                autoFocus
+                type="password"
+                inputMode="numeric"
+                value={pin}
+                maxLength={6}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+                className="tabular w-full rounded-2xl border border-ink-600 bg-ink-950 px-4 py-5 text-center text-3xl font-black tracking-[0.5em] text-white outline-none focus:border-brand"
+                placeholder="••••"
+              />
+            </label>
+
+            <Button
+              type="submit"
+              full
+              className="mt-6"
+              disabled={pin.length < 4 || busy}
+            >
+              {busy ? "Đang kiểm tra…" : "Vào hệ thống"}
+            </Button>
+            <p className="mt-3 text-center text-xs text-ink-400">
+              PIN được kiểm tra ở máy chủ, không lưu trong trình duyệt.
+            </p>
+          </form>
+        )}
+      </div>
+
+      <ErrorBanner />
     </div>
   );
 }

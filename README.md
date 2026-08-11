@@ -1,36 +1,136 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Make Your Move — Web quản lý điểm gameshow
 
-## Getting Started
+Next.js 15 + Supabase. Đồng bộ realtime giữa nhiều thiết bị: Game Master điều hành trên laptop, 4 Care Team nhập trên máy của đội, màn LED mở riêng một tab.
 
-First, run the development server:
+Phân quyền được cưỡng chế ở **backend**, không phải chỉ ẩn nút trên giao diện.
+
+## Chạy tại máy
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev        # http://localhost:3000
+npm run verify     # 74 test: công thức tính điểm, luồng đấu giá, phân quyền, lọc dữ liệu
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Thiết lập (làm một lần)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**1. Tạo bảng.** Mở [SQL Editor](https://supabase.com/dashboard/project/luwfamkepuoebumfctyv/sql/new), dán toàn bộ [`supabase/schema.sql`](supabase/schema.sql), Run.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**2. Lấy service_role key** tại [Settings → API Keys](https://supabase.com/dashboard/project/luwfamkepuoebumfctyv/settings/api-keys), dán vào `.env.local`:
 
-## Learn More
+```
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
+```
 
-To learn more about Next.js, take a look at the following resources:
+Key này bỏ qua toàn bộ RLS. Nó **chỉ được** nằm ở biến môi trường server — không đặt tiền tố `NEXT_PUBLIC_`, không commit, không dán vào code client.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**3. Chạy `npm run dev`.** Lần mở đầu tiên app tự seed ván chơi.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Deploy Vercel
 
-## Deploy on Vercel
+Khai 5 biến trong Project Settings → Environment Variables:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Biến | Loại |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | công khai |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | công khai |
+| `NEXT_PUBLIC_GAME_ID` | công khai |
+| `SUPABASE_SERVICE_ROLE_KEY` | **bí mật** |
+| `SESSION_SECRET` | **bí mật** — `openssl rand -base64 32` |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Thiếu `SUPABASE_SERVICE_ROLE_KEY` thì app không chạy được: mọi thao tác đều đi qua server.
+
+## Tài khoản mặc định
+
+| Vai | PIN |
+|---|---|
+| TEAM ALPHA | 1111 |
+| TEAM BETA | 2222 |
+| TEAM GAMMA | 3333 |
+| TEAM DELTA | 4444 |
+| Game Master | 9999 |
+
+Đổi trong GM → tab **Đội** trước buổi ghi hình. PIN lưu dạng scrypt hash, không lưu bản thô.
+
+## Bốn màn hình
+
+| Đường dẫn | Dùng cho |
+|---|---|
+| `/` | Chọn vai + nhập PIN |
+| `/gm` | Game Master điều hành toàn bộ |
+| `/team` | Care Team nhập Investment, Booster, đấu giá |
+| `/scoreboard` | Màn LED — chỉ đổi khi GM bấm Publish |
+
+## Trình tự vận hành một buổi
+
+1. **GM → Đội**: đổi tên 4 đội, đổi PIN.
+2. **GM → Điều hành**: nhập Energy khởi đầu → *Công bố Energy khởi đầu*.
+3. **TT1, TT2**: mở vòng → Care Team gửi Investment → *Khóa Investment* → *Mở nhập kết quả* → WIN/LOSE từng đội → *Chuyển sang soát* → *Khóa kết quả* → *Publish Scoreboard*.
+4. **Đấu giá** (sau khi TT2 đã khóa): *Snapshot Energy & mở vòng kín* → 4 đội gửi phiếu → *Khóa phiếu* → *Bốc thứ tự Booster* → chạy từng lô → phân bổ phần còn lại.
+5. **TT3**: không đầu tư, thua không mất Energy.
+6. **TT4, TT5**: Care Team chốt Investment + kích hoạt Alpha/Gamma trước giờ thi đấu; sau khi có kết quả, GM *Mở Booster Response* cho các đội thua đang giữ Beta/Delta.
+
+## Luật đã cài trong hệ thống
+
+- Trần đầu tư `max(1, floor(Energy × 30%))`; Energy = 0 thì chỉ nhập 0.
+- Reward: TT1 50 · TT2 60 · TT3 70 · TT4 90 · TT5 100. TT3 không đầu tư, thua giữ nguyên Energy.
+- Alpha `+min(reward, 40)` khi thắng, `-10` thêm khi thua (chặn sàn 0). Gamma `+floor(reward × 50%)`, thua không phạt thêm. Cả hai phải chốt trước giờ thi đấu và tính là đã dùng dù thắng hay thua.
+- Beta che tối đa 25 Energy Investment. Delta chỉ mở khi Energy sau khi thua ≤ 80, hoàn `min(floor(investment × 50%), 20)`.
+- Quỹ đấu giá `floor(Energy sau TT2 × 80%)`. Giá kín không bị trừ Energy — chỉ đội thắng mới trả.
+- Vòng công khai: top 2 giá kín > 0 trong nhóm chưa có Booster, bước giá `+5`, trần bằng quỹ. Hòa thì GM bốc thăm và ghi vào nhật ký.
+- Không ai đặt giá → lô `SKIPPED`, xuống vòng phân bổ với giá `min(quỹ, max(giá kín, 5))`; quỹ = 0 thì nhận giá 0.
+- Nhiều đội cùng thắng một thử thách là hợp lệ — hệ thống tính độc lập từng đội.
+- Energy chỉ đổi khi GM **Khóa kết quả**; LED chỉ đổi khi GM **Publish**.
+- Sửa dữ liệu đã khóa phải qua *Mở lại kết quả* + lý do, ghi vào nhật ký.
+
+## Mô hình bảo mật
+
+Trình duyệt **không có** đường nào chạm tới bảng dữ liệu.
+
+```
+Trình duyệt ──POST /api/action──> Route handler (server)
+                                    ├─ đọc cookie httpOnly ký HMAC → biết là ai
+                                    ├─ authorize(): Care Team chỉ chạy được 5 loại
+                                    │  hành động, và chỉ trên teamId của chính mình
+                                    ├─ applyAction(): kiểm tra luật chơi
+                                    ├─ ghi Supabase bằng service_role + kiểm version
+                                    └─ redactForSession(): cắt bỏ dữ liệu ngoài quyền
+                                       ↓
+Trình duyệt <────── JSON đã lọc ─────┘
+```
+
+| Lớp | Cách chặn |
+|---|---|
+| `game_state` | RLS bật, **không có policy nào** → anon key đọc/ghi đều trượt |
+| `game_pulse` | anon chỉ đọc được đúng một con số `version` để nhận tín hiệu realtime |
+| Phiên đăng nhập | cookie `httpOnly` + `sameSite=lax`, ký HMAC-SHA256 bằng `SESSION_SECRET`; JS trên trang không đọc được |
+| PIN | scrypt + salt ngẫu nhiên; `pinHash` bị xóa trước khi JSON rời server, kể cả với GM |
+| Hành động | `CARE_TEAM_ACTIONS` — Care Team chỉ gửi được Investment, Booster Response, phiếu kín, nâng giá, chọn Booster phân bổ |
+| Dữ liệu trả về | Care Team không nhận được Energy nội bộ, Investment, giá kín, quỹ đấu giá của đội khác, và không nhận nhật ký |
+
+Sửa payload trong DevTools cũng không qua được: server không tin bất cứ thứ gì client gửi ngoài `type` và tham số, còn danh tính lấy từ cookie đã ký.
+
+`npm run verify` có 25 test riêng cho phần này — Care Team gọi `lockResult`, `publishScoreboard`, `setGmPin`, hay nhập hộ đội khác đều phải bị từ chối; và bản JSON gửi cho Care Team phải không chứa số liệu của ba đội còn lại.
+
+## Kiến trúc
+
+```
+src/lib/engine.ts          công thức tính điểm — hàm thuần
+src/lib/mutations.ts       thao tác hợp lệ trên ván chơi + nhật ký
+src/lib/actions.ts         tập hành động client được phép gửi
+src/lib/server/crypto.ts   scrypt cho PIN, HMAC cho cookie phiên
+src/lib/server/dispatch.ts kiểm quyền rồi áp hành động
+src/lib/server/redact.ts   cắt dữ liệu theo vai trước khi trả về
+src/lib/server/gameStore.ts đọc/ghi Supabase bằng service_role
+src/app/api/*              login · logout · state · action
+scripts/verify.ts          74 test
+```
+
+Toàn bộ ván chơi là một dòng JSONB. Mỗi lần ghi kèm `version` cũ; nếu máy khác vừa ghi trước, server đọc lại bản mới và áp lại hành động (tối đa 5 lần) — GM và Care Team bấm cùng lúc không mất dữ liệu.
+
+## Giới hạn còn lại
+
+- **Đổi PIN không đá phiên đang đăng nhập.** Cookie cũ vẫn dùng được tới 12 tiếng. Muốn đá ngay thì phải thêm phiên bản token vào state.
+- **Chống dò PIN mới ở mức cơ bản**: mỗi lần sai bị giữ 400ms, chưa khóa theo IP. PIN 4 chữ số nội bộ dùng một buổi thì đủ; công khai lâu dài thì nên tăng lên 6 chữ số.
+- Đổi `NEXT_PUBLIC_GAME_ID` là sang một ván chơi độc lập — tiện để chạy thử rồi reset sạch cho buổi thật.
+- Trước mỗi vòng nên bấm **Xuất file JSON** ở tab Đội để có bản sao lưu ngoài. File này không chứa PIN; nạp lại sẽ giữ nguyên PIN hiện hành.

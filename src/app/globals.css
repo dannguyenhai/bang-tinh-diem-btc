@@ -1,26 +1,67 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@theme {
+  --color-ink-950: #05070f;
+  --color-ink-900: #0a0e1c;
+  --color-ink-800: #121829;
+  --color-ink-700: #1b2338;
+  --color-ink-600: #2a3450;
+  --color-ink-400: #6b7793;
+  --color-ink-200: #aebbd4;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-brand: #f5c542;
+  --color-brand-dim: #b4901f;
+  --color-win: #34d399;
+  --color-lose: #f87171;
+  --color-info: #38bdf8;
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  background: var(--color-ink-950);
+  color: #e8edf7;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  background-image:
+    radial-gradient(circle at 12% -10%, rgba(245, 197, 66, 0.14), transparent 45%),
+    radial-gradient(circle at 88% 0%, rgba(56, 189, 248, 0.12), transparent 42%);
+  background-attachment: fixed;
+  min-height: 100dvh;
+}
+
+/* Bỏ mũi tên tăng/giảm để nhập số nhanh trên điện thoại. */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 197, 66, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(245, 197, 66, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 197, 66, 0);
+  }
+}
+
+.pulse-ring {
+  animation: pulse-ring 2s infinite;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
 }
