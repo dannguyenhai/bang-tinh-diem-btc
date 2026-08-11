@@ -11,7 +11,7 @@ import {
   CHALLENGES,
   CHALLENGE_STATUS_LABEL,
 } from "@/lib/config";
-import { getMaxInvestment, validateInvestment } from "@/lib/engine";
+import { canUseDelta, getMaxInvestment, validateInvestment } from "@/lib/engine";
 import {
   getBoosterResponseTeams,
   getFallbackPrice,
@@ -482,6 +482,7 @@ function ResultSummary({
 }) {
   const data = useGameStore((s) => s.data);
   const entry = data.challenges[challengeId].entries[teamId];
+  const team = data.teams[teamId];
   const status = data.challenges[challengeId].status;
 
   if (entry.result === null) return <Empty>Chưa có kết quả.</Empty>;
@@ -489,12 +490,35 @@ function ResultSummary({
   const projection = projectEntry(data, challengeId, teamId);
   if (!projection) return <Empty>Chưa có kết quả.</Empty>;
 
+  const energyBefore = entry.energyBefore ?? team.currentEnergy;
+  const investment = entry.investment ?? 0;
+  // Thua, còn Delta trong tay mà không được hỏi — phải nói rõ vì sao.
+  const deltaLocked =
+    entry.result === "LOSE" &&
+    !team.boosterUsed &&
+    team.boosterOwned === "DELTA" &&
+    !canUseDelta(energyBefore, investment);
+
   return (
     <div className="space-y-3">
       <Badge tone={entry.result === "WIN" ? "win" : "lose"}>
         {entry.result === "WIN" ? "CHIẾN THẮNG" : "KHÔNG CHIẾN THẮNG"}
       </Badge>
       <Breakdown lines={projection.breakdown} />
+      {deltaLocked && (
+        <div className="rounded-lg border border-ink-600 bg-ink-800/40 p-3">
+          <p className="text-sm font-bold text-ink-200">
+            DELTA không dùng được ở vòng này
+          </p>
+          <p className="mt-1 text-xs text-ink-400">
+            Delta chỉ mở khi Energy sau khi thua ≤ 80. Của đội là{" "}
+            <span className="tabular font-bold text-white">
+              {energyBefore} − {investment} = {energyBefore - investment}
+            </span>
+            . Booster vẫn được giữ nguyên cho vòng sau.
+          </p>
+        </div>
+      )}
       {status !== "RESULT_LOCKED" && (
         <p className="text-xs text-ink-400">
           Số liệu tạm tính — chỉ chính thức khi Game Master khóa kết quả.

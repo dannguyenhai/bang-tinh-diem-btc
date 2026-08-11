@@ -440,6 +440,30 @@ function TeamRow({
               {entry.preBoosterActivation && ` · ${team.boosterOwned} kích hoạt`}
             </p>
           )}
+          {/*
+            Đội thua, còn Booster phòng thủ mà vẫn không được hỏi — GM phải
+            giải thích được ngay trên sân khấu, nên nói thẳng con số.
+          */}
+          {entry.result === "LOSE" &&
+            !team.boosterUsed &&
+            (team.boosterOwned === "BETA" || team.boosterOwned === "DELTA") &&
+            !canRespond && (
+              <p className="mt-2 rounded-lg border border-ink-600 bg-ink-900/60 px-2.5 py-2 text-xs text-ink-400">
+                {team.boosterOwned === "DELTA" ? (
+                  <>
+                    DELTA chưa mở: Energy sau khi thua là{" "}
+                    <span className="tabular font-bold text-white">
+                      {energyBefore} − {entry.investment ?? 0} ={" "}
+                      {energyBefore - (entry.investment ?? 0)}
+                    </span>
+                    , trong khi điều kiện là ≤ 80.
+                  </>
+                ) : (
+                  "Booster này không dùng được ở lượt hiện tại."
+                )}
+              </p>
+            )}
+
           {status === "RESULT_ENTRY" && (
             <div className="mt-2.5 grid grid-cols-2 gap-2">
               <Button
