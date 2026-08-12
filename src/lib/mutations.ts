@@ -13,7 +13,11 @@ import {
   validateInvestment,
   validateSealedBids,
 } from "./engine";
-import { createChallengeState, createAuctionState } from "./initialState";
+import {
+  createAuctionState,
+  createChallengeState,
+  createLot,
+} from "./initialState";
 import type {
   Actor,
   AuditEntry,
@@ -607,6 +611,11 @@ export function prepareCurrentLot(data: GameData): void {
     return;
   }
   const lot = auction.lots[booster];
+  // Lô đã xong (thường gặp sau khi thu hồi và quay lại giữa chừng) — đi tiếp.
+  if (lot.status === "AWARDED" || lot.status === "SKIPPED") {
+    advanceLot(data);
+    return;
+  }
   if (lot.status !== "PENDING") return;
 
   const eligible = TEAM_IDS.filter(
@@ -813,6 +822,59 @@ export function awardLot(
   });
 
   advanceLot(data);
+}
+
+/**
+ * Thu hồi một lô đã trao — dùng khi GM bấm nhầm giữa buổi. Hoàn Energy, trả
+ * Booster về kho và mở lại chính lô đó để đấu tiếp từ đầu.
+ */
+export function revokeAward(
+  data: GameData,
+  actor: Actor,
+  booster: BoosterId,
+  reason: string,
+): void {
+  if (!reason.trim()) fail("Bắt buộc nhập lý do thu hồi.");
+
+  const lot = data.auction.lots[booster];
+  if (lot.status !== "AWARDED" || !lot.winner) {
+    fail("Booster này chưa trao cho đội nào.");
+  }
+
+  const winner = lot.winner;
+  const team = data.teams[winner];
+  if (team.boosterUsed) {
+    fail(
+      `${team.name} đã dùng Booster này rồi — phải mở lại kết quả vòng đó trước.`,
+    );
+  }
+
+  const price = lot.winningPrice ?? 0;
+  const before = team.currentEnergy;
+  team.boosterOwned = null;
+  team.currentEnergy = before + price;
+
+  data.auction.lots[booster] = createLot(booster);
+  // Bốc thăm thứ tự phân bổ cũ không còn đúng khi số đội thay đổi.
+  data.auction.fallbackOrder = [];
+
+  addAudit(data, actor, {
+    action: `THU HỒI BOOSTER ${booster}`,
+    teamId: winner,
+    oldValue: `${before} (đã trả ${price})`,
+    newValue: team.currentEnergy,
+    reason: reason.trim(),
+  });
+
+  const index = data.auction.order.indexOf(booster);
+  if (index >= 0) {
+    data.auction.phase = "RUNNING";
+    data.auction.currentLotIndex = index;
+    prepareCurrentLot(data);
+  } else {
+    // Chưa từng lên sàn (được trao ở vòng phân bổ) — quay lại vòng phân bổ.
+    data.auction.phase = "FALLBACK";
+  }
 }
 
 export function skipLot(data: GameData, actor: Actor, booster: BoosterId): void {

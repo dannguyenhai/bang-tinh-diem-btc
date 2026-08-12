@@ -1,7 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Badge, Button, Card, Empty, NumberField, Stat } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  Empty,
+  NumberField,
+  Stat,
+  TextField,
+} from "@/components/ui";
 import {
   AUCTION_PHASE_LABEL,
   BOOSTER_IDS,
@@ -75,6 +83,7 @@ export function AuctionControl() {
         </>
       )}
       {phase === "DONE" && <AuctionSummary />}
+      {phase !== "IDLE" && phase !== "SEALED_OPEN" && <RevokePanel />}
 
       {phase !== "IDLE" && phase !== "DONE" && (
         <Button
@@ -562,6 +571,104 @@ function FallbackRound() {
           )}
         </>
       )}
+    </Card>
+  );
+}
+
+/** Sửa lỗi trao nhầm: hoàn Energy, trả Booster về kho, mở lại chính lô đó. */
+function RevokePanel() {
+  const data = useGameStore((s) => s.data);
+  const dispatch = useGameStore((s) => s.dispatch);
+  const [target, setTarget] = useState<BoosterId | null>(null);
+  const [reason, setReason] = useState("");
+
+  const awarded = BOOSTER_IDS.filter(
+    (b) => data.auction.lots[b].status === "AWARDED",
+  );
+  if (awarded.length === 0) return null;
+
+  return (
+    <Card
+      title="Trao nhầm?"
+      subtitle="Thu hồi Booster, hoàn lại Energy đã trừ và đấu lại lô đó."
+    >
+      <div className="space-y-2.5">
+        {awarded.map((booster) => {
+          const lot = data.auction.lots[booster];
+          const winner = lot.winner!;
+          const team = data.teams[winner];
+          const used = team.boosterUsed;
+          const open = target === booster;
+
+          return (
+            <div
+              key={booster}
+              className="rounded-lg border border-ink-700 bg-linear-to-b from-ink-800/50 to-ink-950/50 p-3"
+              style={{ borderLeft: `3px solid ${team.color}` }}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-sm font-black text-white">
+                    {BOOSTER_META[booster].short} → {team.name}
+                  </p>
+                  <p className="tabular text-xs text-ink-400">
+                    Đã trừ {lot.winningPrice} Energy
+                    {lot.note ? ` · ${lot.note}` : ""}
+                  </p>
+                </div>
+                {used ? (
+                  <Badge tone="lose">Đã dùng — không thu hồi được</Badge>
+                ) : (
+                  <Button
+                    variant="danger"
+                    className="px-3 py-1.5 text-[11px]"
+                    onClick={() => {
+                      setTarget(open ? null : booster);
+                      setReason("");
+                    }}
+                  >
+                    {open ? "Hủy" : "Thu hồi"}
+                  </Button>
+                )}
+              </div>
+
+              {open && !used && (
+                <div className="mt-2.5 space-y-2">
+                  <TextField
+                    label="Lý do thu hồi"
+                    value={reason}
+                    placeholder="Ví dụ: bấm nhầm sang đội khác"
+                    onChange={(e) => setReason(e.target.value)}
+                  />
+                  <Button
+                    full
+                    variant="danger"
+                    disabled={!reason.trim()}
+                    onClick={async () => {
+                      const ok = await dispatch({
+                        type: "revokeAward",
+                        booster,
+                        reason,
+                      });
+                      if (ok) {
+                        setTarget(null);
+                        setReason("");
+                      }
+                    }}
+                  >
+                    Hoàn {lot.winningPrice} Energy & đấu lại{" "}
+                    {BOOSTER_META[booster].short}
+                  </Button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <p className="mt-3 text-xs text-ink-400">
+        Booster đã được đội dùng ở TT4/TT5 thì phải mở lại kết quả vòng đó
+        trước, rồi mới thu hồi được.
+      </p>
     </Card>
   );
 }

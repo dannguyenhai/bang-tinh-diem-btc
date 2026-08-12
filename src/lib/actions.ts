@@ -58,6 +58,7 @@ export type GameAction =
     }
   | { type: "awardLot"; booster: BoosterId; winner?: TeamId }
   | { type: "skipLot"; booster: BoosterId }
+  | { type: "revokeAward"; booster: BoosterId; reason: string }
   | { type: "randomizeFallbackOrder" }
   | { type: "assignFallbackBooster"; teamId: TeamId; booster: BoosterId }
   | { type: "closeAuction" }

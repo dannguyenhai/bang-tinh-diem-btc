@@ -9,7 +9,7 @@ Phân quyền được cưỡng chế ở **backend**, không phải chỉ ẩn 
 ```bash
 npm install
 npm run dev        # http://localhost:3000
-npm run verify     # 222 test: công thức tính điểm, vòng đời Booster, đấu giá, phân quyền, lọc dữ liệu
+npm run verify     # 245 test: công thức tính điểm, vòng đời Booster, đấu giá, phân quyền, lọc dữ liệu
 ```
 
 ## Thiết lập (làm một lần)
@@ -83,6 +83,7 @@ Thiếu `SUPABASE_SERVICE_ROLE_KEY` thì app không chạy được: mọi thao 
 - Nhiều đội cùng thắng một thử thách là hợp lệ — hệ thống tính độc lập từng đội.
 - Energy chỉ đổi khi GM **Khóa kết quả**; LED chỉ đổi khi GM **Publish**.
 - Sửa dữ liệu đã khóa phải qua *Mở lại kết quả* + lý do, ghi vào nhật ký.
+- Trao nhầm Booster thì dùng *Thu hồi* ở tab Đấu giá: hoàn Energy đã trừ, trả Booster về kho, mở lại đúng lô đó để đấu tiếp. Booster đã được đội dùng ở TT4/TT5 thì phải mở lại kết quả vòng đó trước.
 
 ## Mô hình bảo mật
 
@@ -124,7 +125,7 @@ src/lib/server/dispatch.ts kiểm quyền rồi áp hành động
 src/lib/server/redact.ts   cắt dữ liệu theo vai trước khi trả về
 src/lib/server/gameStore.ts đọc/ghi Supabase bằng service_role
 src/app/api/*              login · logout · state · action
-scripts/verify.ts          222 test
+scripts/verify.ts          245 test
 ```
 
 Toàn bộ ván chơi là một dòng JSONB. Mỗi lần ghi kèm `version` cũ; nếu máy khác vừa ghi trước, server đọc lại bản mới và áp lại hành động (tối đa 5 lần) — GM và Care Team bấm cùng lúc không mất dữ liệu.

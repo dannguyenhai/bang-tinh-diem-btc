@@ -173,6 +173,9 @@ export function applyAction(
     case "skipLot":
       return M.skipLot(data, actor, action.booster);
 
+    case "revokeAward":
+      return M.revokeAward(data, actor, action.booster, action.reason);
+
     case "randomizeFallbackOrder":
       return M.randomizeFallbackOrder(data, actor);
 

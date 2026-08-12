@@ -899,5 +899,77 @@ eq("GM vẫn đang đăng nhập", isSessionCurrent(gmAt2, ep), true);
 eq("Không lọt ra bản gửi cho GM", redactForSession(ep, gmAt2).sessionEpoch, 0);
 eq("Không lọt ra bản gửi cho khách", redactForSession(ep, null).sessionEpoch, 0);
 
+
+
+/* --- Thu hồi Booster trao nhầm --- */
+const rv = auctionReady([102, 102, 102, 102]);
+M.submitSealedBids(rv, gm, "TEAM_1", { ALPHA: 30, BETA: 0, GAMMA: 0, DELTA: 0 });
+M.submitSealedBids(rv, gm, "TEAM_2", { ALPHA: 0, BETA: 25, GAMMA: 0, DELTA: 0 });
+M.submitSealedBids(rv, gm, "TEAM_3", { ALPHA: 0, BETA: 0, GAMMA: 20, DELTA: 0 });
+M.submitSealedBids(rv, gm, "TEAM_4", { ALPHA: 0, BETA: 0, GAMMA: 0, DELTA: 10 });
+M.lockSealedAuction(rv, gm);
+M.orderAuctionLots(rv, gm);
+
+const snapA = rv.auction.teams.TEAM_1.energySnapshot;
+M.awardLot(rv, gm, "ALPHA");
+eq("Trao ALPHA cho TEAM_1", rv.teams.TEAM_1.boosterOwned, "ALPHA");
+eq("Đã trừ 30", rv.teams.TEAM_1.currentEnergy, snapA - 30);
+
+refuses("Phải nhập lý do thu hồi", () => M.revokeAward(rv, gm, "ALPHA", "  "), "luật");
+refuses("Không thu hồi lô chưa trao", () => M.revokeAward(rv, gm, "BETA", "nhầm"), "luật");
+
+M.revokeAward(rv, gm, "ALPHA", "Bấm nhầm sang đội khác");
+eq("Booster về kho", rv.teams.TEAM_1.boosterOwned, null);
+eq("Energy hoàn nguyên", rv.teams.TEAM_1.currentEnergy, snapA);
+eq("Lô về trạng thái chờ đấu", rv.auction.lots.ALPHA.status !== "AWARDED", true);
+eq("Xóa dấu vết đội thắng", rv.auction.lots.ALPHA.winner, null);
+eq("Nhật ký ghi lý do", rv.auditLog[0].reason, "Bấm nhầm sang đội khác");
+eq("Quay lại đúng lô ALPHA", rv.auction.order[rv.auction.currentLotIndex], "ALPHA");
+eq("Phiên đấu giá chạy lại", rv.auction.phase, "RUNNING");
+
+// Đấu lại và trao đúng đội — các lô sau vẫn chạy tiếp bình thường.
+M.awardLot(rv, gm, "ALPHA");
+eq("Trao lại được", rv.teams.TEAM_1.boosterOwned, "ALPHA");
+M.awardLot(rv, gm, "BETA");
+M.awardLot(rv, gm, "GAMMA");
+M.awardLot(rv, gm, "DELTA");
+eq("Bốn đội đủ Booster", T.every((t) => rv.teams[t].boosterOwned !== null), true);
+eq("Đấu giá hoàn tất", rv.auction.phase, "DONE");
+
+/* Thu hồi lô đã trao ở giữa, khi các lô sau đã xong — không được kẹt */
+const mid = auctionReady([102, 102, 102, 102]);
+M.submitSealedBids(mid, gm, "TEAM_1", { ALPHA: 30, BETA: 0, GAMMA: 0, DELTA: 0 });
+M.submitSealedBids(mid, gm, "TEAM_2", { ALPHA: 0, BETA: 25, GAMMA: 0, DELTA: 0 });
+M.submitSealedBids(mid, gm, "TEAM_3", { ALPHA: 0, BETA: 0, GAMMA: 20, DELTA: 0 });
+M.submitSealedBids(mid, gm, "TEAM_4", { ALPHA: 0, BETA: 0, GAMMA: 0, DELTA: 10 });
+M.lockSealedAuction(mid, gm);
+M.orderAuctionLots(mid, gm);
+["ALPHA", "BETA", "GAMMA", "DELTA"].forEach((b) => M.awardLot(mid, gm, b as "ALPHA"));
+eq("Xong cả bốn lô", mid.auction.phase, "DONE");
+
+const snapB = mid.auction.teams.TEAM_2.energySnapshot;
+M.revokeAward(mid, gm, "BETA", "Trao nhầm lúc chốt sổ");
+eq("Hoàn Energy cho đội bị thu hồi", mid.teams.TEAM_2.currentEnergy, snapB);
+eq("Quay về đúng lô BETA", mid.auction.order[mid.auction.currentLotIndex], "BETA");
+M.awardLot(mid, gm, "BETA");
+eq("Trao lại xong thì nhảy qua các lô đã trao, về DONE", mid.auction.phase, "DONE");
+eq("Không đội nào mất Booster", T.every((t) => mid.teams[t].boosterOwned !== null), true);
+
+/* Đã dùng Booster ở TT4/TT5 thì không thu hồi được */
+mid.teams.TEAM_3.boosterUsed = true;
+refuses(
+  "Booster đã dùng thì chặn thu hồi",
+  () => M.revokeAward(mid, gm, "GAMMA", "muốn sửa"),
+  "luật",
+);
+eq("Đội vẫn giữ Booster đã dùng", mid.teams.TEAM_3.boosterOwned, "GAMMA");
+
+/* Care Team không được thu hồi */
+refuses(
+  "Care Team không thu hồi được Booster",
+  () => applyAction(mid, { type: "revokeAward", booster: "ALPHA", reason: "x" }, team1Session),
+  "quyền",
+);
+
 console.log(`\n${pass} đạt / ${fail} lỗi`);
 process.exit(fail > 0 ? 1 : 0);
