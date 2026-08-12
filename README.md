@@ -9,7 +9,7 @@ Phân quyền được cưỡng chế ở **backend**, không phải chỉ ẩn 
 ```bash
 npm install
 npm run dev        # http://localhost:3000
-npm run verify     # 205 test: công thức tính điểm, vòng đời Booster, đấu giá, phân quyền, lọc dữ liệu
+npm run verify     # 222 test: công thức tính điểm, vòng đời Booster, đấu giá, phân quyền, lọc dữ liệu
 ```
 
 ## Thiết lập (làm một lần)
@@ -104,7 +104,7 @@ Trình duyệt <────── JSON đã lọc ─────┘
 |---|---|
 | `game_state` | RLS bật, **không có policy nào** → anon key đọc/ghi đều trượt |
 | `game_pulse` | anon chỉ đọc được đúng một con số `version` để nhận tín hiệu realtime |
-| Phiên đăng nhập | cookie `httpOnly` + `sameSite=lax`, ký HMAC-SHA256 bằng `SESSION_SECRET`; JS trên trang không đọc được |
+| Phiên đăng nhập | cookie `httpOnly` + `sameSite=lax`, ký HMAC-SHA256 bằng `SESSION_SECRET`; JS trên trang không đọc được. Cookie mang `epoch`, lệch với ván chơi là bị từ chối |
 | PIN | scrypt + salt ngẫu nhiên; `pinHash` bị xóa trước khi JSON rời server, kể cả với GM |
 | Hành động | `CARE_TEAM_ACTIONS` — Care Team chỉ gửi được tên đội, Investment, Booster Response, phiếu kín, nâng giá, chọn Booster phân bổ |
 | Dữ liệu trả về | Care Team không nhận được Energy nội bộ, Investment, giá kín, quỹ đấu giá của đội khác, và không nhận nhật ký |
@@ -124,14 +124,14 @@ src/lib/server/dispatch.ts kiểm quyền rồi áp hành động
 src/lib/server/redact.ts   cắt dữ liệu theo vai trước khi trả về
 src/lib/server/gameStore.ts đọc/ghi Supabase bằng service_role
 src/app/api/*              login · logout · state · action
-scripts/verify.ts          205 test
+scripts/verify.ts          222 test
 ```
 
 Toàn bộ ván chơi là một dòng JSONB. Mỗi lần ghi kèm `version` cũ; nếu máy khác vừa ghi trước, server đọc lại bản mới và áp lại hành động (tối đa 5 lần) — GM và Care Team bấm cùng lúc không mất dữ liệu.
 
 ## Giới hạn còn lại
 
-- **Đổi PIN không đá phiên đang đăng nhập.** Cookie cũ vẫn dùng được tới 12 tiếng. Muốn đá ngay thì phải thêm phiên bản token vào state.
+- **Đổi PIN lẻ không đá phiên đang đăng nhập.** Cookie cũ vẫn dùng được tới 12 tiếng. Muốn đá sạch mọi thiết bị thì dùng *Khôi phục về mặc định* — nó tăng `sessionEpoch` nên mọi cookie đã phát thành vô hiệu ngay.
 - **Chống dò PIN mới ở mức cơ bản**: mỗi lần sai bị giữ 400ms, chưa khóa theo IP. PIN 4 chữ số nội bộ dùng một buổi thì đủ; công khai lâu dài thì nên tăng lên 6 chữ số.
 - Đổi `NEXT_PUBLIC_GAME_ID` là sang một ván chơi độc lập — tiện để chạy thử rồi reset sạch cho buổi thật.
 - Trước mỗi vòng nên bấm **Xuất file JSON** ở tab Đội để có bản sao lưu ngoài. File này không chứa PIN; nạp lại sẽ giữ nguyên PIN hiện hành.

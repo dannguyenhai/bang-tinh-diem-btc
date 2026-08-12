@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { loadGame } from "@/lib/server/gameStore";
 import { redactForSession, rosterOf } from "@/lib/server/redact";
-import { readSession } from "@/lib/server/session";
+import { clearSession, isSessionCurrent, readSession } from "@/lib/server/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,8 +9,13 @@ export const dynamic = "force-dynamic";
 /** Trả về ván chơi đã lọc theo đúng vai của người gọi. */
 export async function GET() {
   try {
-    const session = await readSession();
+    const raw = await readSession();
     const { data, version } = await loadGame();
+
+    // Ván chơi đã được khôi phục về mặc định — dọn cookie cũ đi cho sạch.
+    const session = isSessionCurrent(raw, data) ? raw : null;
+    if (raw && !session) await clearSession();
+
     return NextResponse.json(
       {
         session,

@@ -5,6 +5,7 @@ import type { Actor, ChallengeId, TeamId } from "../src/lib/types";
 import { ForbiddenError, applyAction } from "../src/lib/server/dispatch";
 import { redactForSession } from "../src/lib/server/redact";
 import { verifyPin } from "../src/lib/server/crypto";
+import { isSessionCurrent } from "../src/lib/session";
 import {
   getActiveChallengeId,
   getNextChallengeId,
@@ -174,11 +175,12 @@ M.publishScoreboard(g, gm);
 eq("LED khớp sau Publish", g.teams.TEAM_1.publishedEnergy, g.teams.TEAM_1.currentEnergy);
 
 /* --- Phân quyền phía server --- */
-const gmSession = { role: "GM" as const, teamId: null, name: "Game Master" };
+const gmSession = { role: "GM" as const, teamId: null, name: "Game Master", epoch: 1 };
 const team1Session = {
   role: "CARE_TEAM" as const,
   teamId: "TEAM_1" as TeamId,
   name: "TEAM ALPHA",
+  epoch: 1,
 };
 
 function refuses(label: string, run: () => void, kind: "quyền" | "luật") {
@@ -782,8 +784,8 @@ eq("Quỹ bằng 0 → giá 0", M.getFallbackPrice(broke, "TEAM_4", "ALPHA"), 0)
 
 /* --- Care Team tự đặt tên đội --- */
 const nm = createInitialGameData(100, () => "hash");
-const t1s = { role: "CARE_TEAM" as const, teamId: "TEAM_1" as TeamId, name: "TEAM ALPHA" };
-const t2s = { role: "CARE_TEAM" as const, teamId: "TEAM_2" as TeamId, name: "TEAM BETA" };
+const t1s = { role: "CARE_TEAM" as const, teamId: "TEAM_1" as TeamId, name: "TEAM ALPHA", epoch: 1 };
+const t2s = { role: "CARE_TEAM" as const, teamId: "TEAM_2" as TeamId, name: "TEAM BETA", epoch: 1 };
 
 applyAction(nm, { type: "setTeamProfile", teamId: "TEAM_1", name: "BIỆT ĐỘI SẤM SÉT" }, t1s);
 eq("Đội tự đặt được tên mình trước giờ G", nm.teams.TEAM_1.name, "BIỆT ĐỘI SẤM SÉT");
@@ -852,6 +854,50 @@ eq("Đội cuối bị trừ 40, không phải 10", fin.teams.TEAM_4.currentEner
 eq("Ghi đúng giá vào kết quả lô", fin.auction.lots.DELTA.winningPrice, 40);
 eq("Bốn đội đủ Booster", T.every((t) => fin.teams[t].boosterOwned !== null), true);
 eq("Đấu giá kết thúc", fin.auction.phase, "DONE");
+
+
+
+/* --- Khôi phục về mặc định đá hết phiên đang đăng nhập --- */
+const ep = createInitialGameData(100, () => "hash");
+eq("Ván mới bắt đầu ở phiên số 1", ep.sessionEpoch, 1);
+
+const gmAt1 = { role: "GM" as const, teamId: null, name: "Game Master", epoch: ep.sessionEpoch };
+const teamAt1 = {
+  role: "CARE_TEAM" as const,
+  teamId: "TEAM_2" as TeamId,
+  name: "TEAM BETA",
+  epoch: ep.sessionEpoch,
+};
+eq("Phiên vừa cấp còn hiệu lực", isSessionCurrent(gmAt1, ep), true);
+eq("Phiên của đội cũng vậy", isSessionCurrent(teamAt1, ep), true);
+
+// Reset ván chơi thường không đá ai — PIN không đổi.
+applyAction(ep, { type: "resetGame", startEnergy: 100 }, gmAt1);
+eq("Reset ván chơi giữ nguyên số phiên", ep.sessionEpoch, 1);
+eq("Nên không ai bị đá", isSessionCurrent(teamAt1, ep), true);
+
+// Khôi phục về mặc định thì đá sạch.
+applyAction(ep, { type: "factoryReset", startEnergy: 100 }, gmAt1);
+eq("Khôi phục làm tăng số phiên", ep.sessionEpoch, 2);
+eq("Phiên của đội hết hiệu lực", isSessionCurrent(teamAt1, ep), false);
+eq("Phiên của chính GM cũng hết hiệu lực", isSessionCurrent(gmAt1, ep), false);
+eq("Không có phiên thì đương nhiên không hợp lệ", isSessionCurrent(null, ep), false);
+
+const gmAt2 = { ...gmAt1, epoch: ep.sessionEpoch };
+eq("Đăng nhập lại thì hợp lệ trở lại", isSessionCurrent(gmAt2, ep), true);
+eq("Và đội được tự đặt tên lại", ep.energyOpened, false);
+eq("Tên đội về mặc định", ep.teams.TEAM_2.name, "TEAM BETA");
+eq("PIN về mặc định", verifyPin("2222", ep.teams.TEAM_2.pinHash), true);
+
+// Nạp lại từ file không được đá ai giữa buổi.
+const epochBeforeImport = ep.sessionEpoch;
+applyAction(ep, { type: "importState", data: createInitialGameData(150, () => "x") }, gmAt2);
+eq("Nạp file giữ nguyên số phiên", ep.sessionEpoch, epochBeforeImport);
+eq("GM vẫn đang đăng nhập", isSessionCurrent(gmAt2, ep), true);
+
+// Số phiên là dữ liệu nội bộ, không rời khỏi server.
+eq("Không lọt ra bản gửi cho GM", redactForSession(ep, gmAt2).sessionEpoch, 0);
+eq("Không lọt ra bản gửi cho khách", redactForSession(ep, null).sessionEpoch, 0);
 
 console.log(`\n${pass} đạt / ${fail} lỗi`);
 process.exit(fail > 0 ? 1 : 0);

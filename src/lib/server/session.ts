@@ -4,6 +4,8 @@ import { cookies } from "next/headers";
 import type { Session } from "@/lib/types";
 import { openSession, sealSession } from "./crypto";
 
+export { isSessionCurrent } from "@/lib/session";
+
 export const SESSION_COOKIE = "mym_session";
 const MAX_AGE_SECONDS = 60 * 60 * 12; // đủ một buổi ghi hình
 

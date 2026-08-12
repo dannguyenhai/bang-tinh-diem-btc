@@ -130,6 +130,11 @@ export interface Session {
   role: Role;
   teamId: TeamId | null;
   name: string;
+  /**
+   * Số hiệu phiên tại lúc đăng nhập. Khôi phục toàn bộ sẽ tăng số này lên,
+   * làm mọi cookie đã phát trước đó thành vô hiệu — kể cả trên máy khác.
+   */
+  epoch: number;
 }
 
 /** Toàn bộ dữ liệu ván chơi — đúng một object này được đồng bộ giữa các thiết bị. */
@@ -137,6 +142,8 @@ export interface GameData {
   schemaVersion: number;
   /** Như pinHash của đội: không bao giờ rời khỏi server. */
   gmPinHash: string;
+  /** Tăng lên mỗi lần khôi phục về mặc định, để đá hết phiên cũ. */
+  sessionEpoch: number;
   energyOpened: boolean;
   teams: Record<TeamId, Team>;
   challenges: Record<ChallengeId, ChallengeState>;

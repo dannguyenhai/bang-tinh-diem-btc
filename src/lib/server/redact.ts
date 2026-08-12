@@ -18,6 +18,7 @@ export function redactForSession(
 
   // pinHash không bao giờ rời khỏi server, kể cả với Game Master.
   data.gmPinHash = "";
+  data.sessionEpoch = 0;
   for (const id of TEAM_IDS) data.teams[id].pinHash = "";
 
   if (session?.role === "GM") return data;

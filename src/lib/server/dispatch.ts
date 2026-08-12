@@ -196,6 +196,9 @@ export function applyAction(
       }
       const fresh = createInitialGameData(action.startEnergy, hashPin);
       data.gmPinHash = fresh.gmPinHash;
+      // Đá hết phiên đang đăng nhập: PIN đã về mặc định, cookie cũ không
+      // được phép sống tiếp trên máy của các đội.
+      data.sessionEpoch = data.sessionEpoch + 1;
       data.energyOpened = false;
       data.teams = fresh.teams;
       data.challenges = fresh.challenges;
@@ -212,6 +215,7 @@ export function applyAction(
       const incoming = normalizeGameData(action.data);
       // File sao lưu không chứa PIN (đã bị lọc lúc export) — giữ nguyên PIN hiện tại.
       const gmPinHash = data.gmPinHash;
+      const sessionEpoch = data.sessionEpoch;
       const pinHashes = TEAM_IDS.map((id) => data.teams[id].pinHash);
 
       data.energyOpened = incoming.energyOpened;
@@ -220,6 +224,7 @@ export function applyAction(
       data.auction = incoming.auction;
       data.auditLog = incoming.auditLog;
       data.gmPinHash = gmPinHash;
+      data.sessionEpoch = sessionEpoch;
       TEAM_IDS.forEach((id, index) => {
         data.teams[id].pinHash = pinHashes[index];
         delete data.teams[id].redacted;

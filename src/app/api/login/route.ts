@@ -28,7 +28,7 @@ export async function POST(request: Request) {
 
     if (body.role === "GM") {
       if (verifyPin(pin, data.gmPinHash)) {
-        session = { role: "GM", teamId: null, name: "Game Master" };
+        session = { role: "GM", teamId: null, name: "Game Master", epoch: data.sessionEpoch };
       }
     } else if (body.role === "CARE_TEAM") {
       const teamId = body.teamId as TeamId;
@@ -37,6 +37,7 @@ export async function POST(request: Request) {
           role: "CARE_TEAM",
           teamId,
           name: data.teams[teamId].name,
+          epoch: data.sessionEpoch,
         };
       }
     }

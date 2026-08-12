@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell, GuardMessage, LoadingScreen } from "@/components/AppShell";
 import { Breakdown } from "@/components/Breakdown";
@@ -40,6 +41,13 @@ export default function TeamPage() {
   const hydrated = useGameStore((s) => s.hydrated);
   const session = useGameStore((s) => s.session);
   const data = useGameStore((s) => s.data);
+  const router = useRouter();
+
+  // Game Master khôi phục về mặc định là mọi phiên bị đá — về màn chọn vai.
+  const loggedOut = hydrated && (!session || session.role !== "CARE_TEAM");
+  useEffect(() => {
+    if (loggedOut) router.replace("/");
+  }, [loggedOut, router]);
 
   if (!hydrated) return <LoadingScreen />;
   if (!session || session.role !== "CARE_TEAM" || !session.teamId) {

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { AppShell, GuardMessage, LoadingScreen } from "@/components/AppShell";
 import { AuctionControl } from "@/components/gm/AuctionControl";
 import { AuditLogPanel } from "@/components/gm/AuditLogPanel";
@@ -25,6 +26,13 @@ export default function GmPage() {
   const hydrated = useGameStore((s) => s.hydrated);
   const session = useGameStore((s) => s.session);
   const [tab, setTab] = useState<TabId>("challenge");
+  const router = useRouter();
+
+  // Khôi phục về mặc định cũng đá luôn chính Game Master vừa bấm nút.
+  const loggedOut = hydrated && (!session || session.role !== "GM");
+  useEffect(() => {
+    if (loggedOut) router.replace("/");
+  }, [loggedOut, router]);
 
   if (!hydrated) return <LoadingScreen />;
   if (!session || session.role !== "GM") {

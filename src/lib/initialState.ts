@@ -108,6 +108,7 @@ export function createInitialGameData(
   return {
     schemaVersion: SCHEMA_VERSION,
     gmPinHash: hashPin(GM_DEFAULT_PIN),
+    sessionEpoch: 1,
     energyOpened: false,
     teams,
     challenges,
@@ -163,6 +164,7 @@ export function normalizeGameData(raw: unknown): GameData {
   return {
     schemaVersion: SCHEMA_VERSION,
     gmPinHash: data.gmPinHash ?? fallback.gmPinHash,
+    sessionEpoch: data.sessionEpoch ?? 1,
     energyOpened: data.energyOpened ?? false,
     teams,
     challenges,

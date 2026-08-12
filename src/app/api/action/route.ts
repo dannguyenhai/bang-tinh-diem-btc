@@ -4,7 +4,7 @@ import { GameError } from "@/lib/mutations";
 import { ForbiddenError, applyAction } from "@/lib/server/dispatch";
 import { loadGame, saveGame } from "@/lib/server/gameStore";
 import { redactForSession, rosterOf } from "@/lib/server/redact";
-import { readSession } from "@/lib/server/session";
+import { clearSession, isSessionCurrent, readSession } from "@/lib/server/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,6 +33,18 @@ export async function POST(request: Request) {
   try {
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
       const { data, version } = await loadGame();
+
+      if (!isSessionCurrent(session, data)) {
+        await clearSession();
+        return NextResponse.json(
+          {
+            error:
+              "Ván chơi vừa được khôi phục về mặc định. Đăng nhập lại giúp mình.",
+          },
+          { status: 401 },
+        );
+      }
+
       applyAction(data, action, session);
       const nextVersion = await saveGame(data, version);
 
